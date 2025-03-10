@@ -1,14 +1,25 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MenuIcon, XIcon } from 'lucide-react';
+import { MenuIcon, XIcon, LogOut, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +40,15 @@ const Navbar = () => {
     { title: 'Venues', path: '/venues' },
     { title: 'Events', path: '/events' },
   ];
+
+  // Add dashboard link if user is logged in and is an artist or venue owner
+  if (user) {
+    if (user.role === 'artist') {
+      navItems.push({ title: 'My Dashboard', path: '/artist-dashboard' });
+    } else if (user.role === 'venue_owner') {
+      navItems.push({ title: 'My Dashboard', path: '/venue-dashboard' });
+    }
+  }
 
   const mobileMenuVariants = {
     closed: {
@@ -51,6 +71,22 @@ const Navbar = () => {
     // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
   }, [location]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <header className={navbarClasses}>
@@ -89,28 +125,69 @@ const Navbar = () => {
           ))}
         </nav>
 
-        {/* Auth Buttons */}
+        {/* Auth Buttons / User Menu */}
         <div className="hidden md:flex items-center gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.4 }}
-          >
-            <Link to="/login">
-              <Button variant="outline" className="rounded-full px-4">
-                Log in
-              </Button>
-            </Link>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.5 }}
-          >
-            <Link to="/register">
-              <Button className="rounded-full px-4">Sign up</Button>
-            </Link>
-          </motion.div>
+          {user ? (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+            >
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar>
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </motion.div>
+          ) : (
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <Link to="/auth">
+                  <Button variant="outline" className="rounded-full px-4">
+                    Log in
+                  </Button>
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
+                <Link to="/auth?tab=signup">
+                  <Button className="rounded-full px-4">Sign up</Button>
+                </Link>
+              </motion.div>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -152,14 +229,41 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-2 border-t border-gray-200 dark:border-gray-800">
-                <Link to="/login">
-                  <Button variant="outline" className="w-full">
-                    Log in
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button className="w-full">Sign up</Button>
-                </Link>
+                {user ? (
+                  <>
+                    <div className="flex items-center p-2">
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link to="/profile">
+                      <Button variant="outline" className="w-full justify-start">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Button>
+                    </Link>
+                    <Button onClick={handleLogout} variant="outline" className="w-full justify-start">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/auth">
+                      <Button variant="outline" className="w-full">
+                        Log in
+                      </Button>
+                    </Link>
+                    <Link to="/auth?tab=signup">
+                      <Button className="w-full">Sign up</Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
