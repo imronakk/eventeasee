@@ -17,9 +17,10 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get role from URL query params (for signup)
+  // Get role and tab from URL query params
   const queryParams = new URLSearchParams(location.search);
   const roleFromUrl = queryParams.get('role') as UserRole | null;
+  const tabFromUrl = queryParams.get('tab');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,24 +28,41 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>(roleFromUrl || 'audience');
   
-  // If user is already logged in, redirect to home
+  // If user is already logged in, redirect to appropriate dashboard
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate('/');
+        redirectToDashboard(data.session.user.user_metadata.user_type as UserRole);
       }
     };
     
     checkSession();
   }, [navigate]);
   
+  // Function to redirect users to their respective dashboards based on role
+  const redirectToDashboard = (role: UserRole) => {
+    switch (role) {
+      case 'artist':
+        navigate('/artist-dashboard');
+        break;
+      case 'venue_owner':
+        navigate('/venue-dashboard');
+        break;
+      case 'audience':
+        navigate('/audience-dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
+  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -57,10 +75,20 @@ const Auth = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Account created successfully!",
-        description: "You can now log in with your credentials.",
-      });
+      // If sign-up successful, redirect to appropriate dashboard
+      if (data.user) {
+        toast({
+          title: "Account created successfully!",
+          description: "You are now logged in.",
+        });
+        
+        redirectToDashboard(selectedRole);
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Please check your email to confirm your registration.",
+        });
+      }
       
     } catch (error: any) {
       toast({
@@ -78,14 +106,16 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) throw error;
       
-      navigate('/');
+      // Get the user's role and redirect accordingly
+      const userRole = data.user?.user_metadata?.user_type as UserRole;
+      redirectToDashboard(userRole);
       
     } catch (error: any) {
       toast({
@@ -114,7 +144,7 @@ const Auth = () => {
             </p>
           </div>
           
-          <Tabs defaultValue="login">
+          <Tabs defaultValue={tabFromUrl === 'signup' ? 'signup' : 'login'}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>

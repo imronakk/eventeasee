@@ -12,6 +12,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import ArtistDashboard from "./pages/ArtistDashboard";
+import VenueDashboard from "./pages/VenueDashboard";
+import AudienceDashboard from "./pages/AudienceDashboard";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -38,29 +41,39 @@ const App = () => (
               {/* Auth Routes */}
               <Route path="/auth" element={<Auth />} />
               
-              {/* Artist Routes */}
-              <Route path="/artists" element={<NotFound />} />
-              <Route path="/artists/:id" element={<NotFound />} />
+              {/* Dashboard Routes */}
               <Route 
                 path="/artist-dashboard" 
                 element={
                   <ProtectedRoute allowedRoles={['artist']}>
-                    <NotFound />
+                    <ArtistDashboard />
                   </ProtectedRoute>
                 } 
               />
-              
-              {/* Venue Routes */}
-              <Route path="/venues" element={<NotFound />} />
-              <Route path="/venues/:id" element={<NotFound />} />
               <Route 
                 path="/venue-dashboard" 
                 element={
                   <ProtectedRoute allowedRoles={['venue_owner']}>
-                    <NotFound />
+                    <VenueDashboard />
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/audience-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['audience']}>
+                    <AudienceDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Artist Routes */}
+              <Route path="/artists" element={<NotFound />} />
+              <Route path="/artists/:id" element={<NotFound />} />
+              
+              {/* Venue Routes */}
+              <Route path="/venues" element={<NotFound />} />
+              <Route path="/venues/:id" element={<NotFound />} />
               
               {/* Event Routes */}
               <Route path="/events" element={<NotFound />} />
