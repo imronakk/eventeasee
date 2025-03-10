@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,10 +25,7 @@ const ArtistDashboard = () => {
   ];
 
   const handleCreateProfile = () => {
-    toast({
-      title: "Complete your artist profile",
-      description: "Feature coming soon! This will allow you to add your bio, genre, and more.",
-    });
+    navigate('/profile');
   };
 
   const handleViewRequest = (requestId: string) => {

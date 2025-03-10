@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,10 +25,7 @@ const VenueDashboard = () => {
   ];
 
   const handleCreateProfile = () => {
-    toast({
-      title: "Complete your venue profile",
-      description: "Feature coming soon! This will allow you to add details about your venue.",
-    });
+    navigate('/profile');
   };
 
   const handleViewRequest = (requestId: string) => {

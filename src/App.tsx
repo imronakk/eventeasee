@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import ArtistDashboard from "./pages/ArtistDashboard";
 import VenueDashboard from "./pages/VenueDashboard";
 import AudienceDashboard from "./pages/AudienceDashboard";
+import Profile from "./pages/Profile";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -92,7 +93,7 @@ const App = () => (
                 path="/profile" 
                 element={
                   <ProtectedRoute>
-                    <NotFound />
+                    <Profile />
                   </ProtectedRoute>
                 } 
               />
