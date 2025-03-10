@@ -17,7 +17,7 @@ const UpcomingEvents = () => {
 
   // Enrich events with venue and artist data
   const enrichedEvents = upcomingEvents.map(event => {
-    const venue = mockVenues.find(v => v.venueId === event.venueId);
+    const venue = mockVenues.find(v => v.id === event.venueId);
     const artistIds = event.artistIds || [];
     const artists = artistIds.map(id => {
       const artist = getArtistByUserId(id);
