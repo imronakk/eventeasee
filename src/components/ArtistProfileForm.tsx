@@ -19,7 +19,7 @@ const ArtistProfileForm = () => {
     description: '',
     experience: '',
     introduction_video_url: '',
-    genre: [] as string,
+    genre: [] as string[],
   });
 
   useEffect(() => {

@@ -20,8 +20,8 @@ const VenueProfileForm = () => {
     description: '',
     address: '',
     capacity: 0,
-    amenities: [] as string,
-    images: [] as string,
+    amenities: [] as string[],
+    images: [] as string[],
   });
 
   useEffect(() => {
