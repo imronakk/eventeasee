@@ -94,6 +94,31 @@ const VenueProfileForm = () => {
     
     setLoading(true);
     try {
+      // First, make sure the profile exists in the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (!profileData) {
+        // If profile doesn't exist, create one
+        const { error: insertProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            full_name: user.name || '',
+            user_type: user.role
+          });
+
+        if (insertProfileError) throw insertProfileError;
+      }
+
       if (venueProfile) {
         // Update existing venue
         const { error } = await supabase
