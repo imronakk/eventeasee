@@ -40,7 +40,7 @@ const ArtistProfileForm = () => {
         .eq('id', user.id)
         .maybeSingle();
         
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
       
@@ -55,6 +55,7 @@ const ArtistProfileForm = () => {
         setShowVenuesLink(true);
       }
     } catch (error: any) {
+      console.error("Error fetching artist profile:", error);
       toast({
         variant: "destructive",
         title: "Error fetching profile",
@@ -145,6 +146,7 @@ const ArtistProfileForm = () => {
       
       fetchArtistProfile(); // Refresh the data
     } catch (error: any) {
+      console.error("Error updating artist profile:", error);
       toast({
         variant: "destructive",
         title: "Error updating artist profile",
