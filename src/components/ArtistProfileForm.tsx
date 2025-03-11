@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileForm from './ProfileForm';
+import { Link } from 'react-router-dom';
 
 const ArtistProfileForm = () => {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ const ArtistProfileForm = () => {
     introduction_video_url: '',
     genre: [] as string[],
   });
+  const [showVenuesLink, setShowVenuesLink] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -50,6 +52,7 @@ const ArtistProfileForm = () => {
           introduction_video_url: data.introduction_video_url || '',
           genre: data.genre || [],
         });
+        setShowVenuesLink(true);
       }
     } catch (error: any) {
       toast({
@@ -81,7 +84,7 @@ const ArtistProfileForm = () => {
     
     setLoading(true);
     try {
-      // First, make sure the profile exists in the profiles table
+      // First, check if the profile exists in the profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
@@ -100,7 +103,7 @@ const ArtistProfileForm = () => {
             id: user.id,
             email: user.email || '',
             full_name: user.name || '',
-            user_type: user.role
+            user_type: 'artist'
           });
 
         if (insertProfileError) throw insertProfileError;
@@ -132,6 +135,7 @@ const ArtistProfileForm = () => {
           });
 
         if (error) throw error;
+        setShowVenuesLink(true);
       }
 
       toast({
@@ -207,10 +211,16 @@ const ArtistProfileForm = () => {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col items-start space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Artist Profile"}
             </Button>
+            
+            {showVenuesLink && (
+              <Button variant="outline" asChild>
+                <Link to="/venues">Browse All Venues</Link>
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </form>
