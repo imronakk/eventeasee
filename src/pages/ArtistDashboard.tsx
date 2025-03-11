@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -6,12 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, MusicIcon, BarChart3Icon, Settings2Icon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 const ArtistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Mock data for artist dashboard
   const upcomingEvents = [
@@ -19,10 +25,56 @@ const ArtistDashboard = () => {
     { id: '2', name: 'Summer Festival', venue: 'Central Park', date: '2023-12-05', time: '4:00 PM' },
   ];
 
-  const pendingRequests = [
-    { id: '1', venueName: 'The Grand Hall', date: '2023-11-30', status: 'pending' },
-    { id: '2', venueName: 'Riverside Club', date: '2023-12-15', status: 'pending' },
-  ];
+  useEffect(() => {
+    if (user) {
+      fetchPerformanceRequests();
+    }
+  }, [user]);
+
+  const fetchPerformanceRequests = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      const { data: requests, error } = await supabase
+        .from('show_requests')
+        .select(`
+          id,
+          proposed_date,
+          message,
+          status,
+          venues (
+            id,
+            name
+          )
+        `)
+        .eq('artist_id', user.id);
+        
+      if (error) throw error;
+      
+      // Process the data
+      const processedRequests = requests?.map(request => ({
+        id: request.id,
+        venueName: request.venues?.name || 'Unknown Venue',
+        date: request.proposed_date,
+        status: request.status,
+        message: request.message
+      })) || [];
+      
+      setPendingRequests(processedRequests);
+      
+    } catch (error: any) {
+      console.error("Error fetching performance requests:", error);
+      toast({
+        variant: "destructive",
+        title: "Error fetching requests",
+        description: error.message || "Could not load your performance requests."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateProfile = () => {
     navigate('/profile');
@@ -33,6 +85,19 @@ const ArtistDashboard = () => {
       title: "View request details",
       description: `Viewing details for request ${requestId}. Full feature coming soon!`,
     });
+  };
+
+  // Helper function to get badge color based on status
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'success';
+      case 'rejected':
+        return 'destructive';
+      case 'pending':
+      default:
+        return 'outline';
+    }
   };
 
   return (
@@ -86,10 +151,10 @@ const ArtistDashboard = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Pending Requests</CardTitle>
-                <CardDescription>You have {pendingRequests.length} pending venue requests</CardDescription>
+                <CardDescription>You have {pendingRequests.filter(r => r.status === 'pending').length} pending venue requests</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{pendingRequests.length}</div>
+                <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'pending').length}</div>
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
@@ -156,21 +221,41 @@ const ArtistDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Performance Requests</CardTitle>
-              <CardDescription>Requests from venues or that you've sent to venues</CardDescription>
+              <CardDescription>Requests you've sent to venues</CardDescription>
             </CardHeader>
             <CardContent>
-              {pendingRequests.length > 0 ? (
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-pulse flex space-x-2">
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  </div>
+                </div>
+              ) : pendingRequests.length > 0 ? (
                 <div className="space-y-4">
                   {pendingRequests.map((request) => (
                     <div key={request.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
                       <div>
-                        <h3 className="font-medium">{request.venueName}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{request.venueName}</h3>
+                          <Badge 
+                            variant={
+                              request.status === 'accepted' ? 'default' : 
+                              request.status === 'rejected' ? 'destructive' : 
+                              'outline'
+                            }
+                            className="capitalize"
+                          >
+                            {request.status}
+                          </Badge>
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                          Proposed date: {request.date} • Status: <span className="capitalize">{request.status}</span>
+                          Proposed date: {format(new Date(request.date), 'PPP')}
                         </p>
                       </div>
                       <Button variant="outline" className="mt-2 md:mt-0" onClick={() => handleViewRequest(request.id)}>
-                        View Request
+                        View Details
                       </Button>
                     </div>
                   ))}

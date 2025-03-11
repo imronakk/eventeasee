@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from '@/components/ui/textarea';
 
 const Venues = () => {
   const { toast } = useToast();
@@ -15,6 +17,11 @@ const Venues = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedVenue, setSelectedVenue] = useState<any>(null);
+  const [isRequestOpen, setIsRequestOpen] = useState(false);
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requestDate, setRequestDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchVenues();
@@ -38,6 +45,65 @@ const Venues = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestToPerform = (venue: any) => {
+    setSelectedVenue(venue);
+    setIsRequestOpen(true);
+  };
+
+  const handleRequestSubmit = async () => {
+    if (!user || !selectedVenue || !requestDate) {
+      toast({
+        variant: "destructive",
+        title: "Missing information",
+        description: "Please provide all required information."
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Format the request data
+      const requestData = {
+        artist_id: user.id,
+        venue_id: selectedVenue.id,
+        proposed_date: new Date(requestDate).toISOString(),
+        message: requestMessage,
+        initiator: 'artist' as const,
+        status: 'pending'
+      };
+      
+      // Submit the request to the database
+      const { error } = await supabase
+        .from('show_requests')
+        .insert(requestData);
+        
+      if (error) throw error;
+      
+      // Success message
+      toast({
+        title: "Request sent",
+        description: `Your performance request to ${selectedVenue.name} has been sent.`
+      });
+      
+      // Close the dialog and reset form
+      setIsRequestOpen(false);
+      setRequestMessage('');
+      setRequestDate('');
+      setSelectedVenue(null);
+      
+    } catch (error: any) {
+      console.error("Error sending performance request:", error);
+      toast({
+        variant: "destructive",
+        title: "Error sending request",
+        description: error.message || "Could not send your request. Please try again."
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -108,7 +174,11 @@ const Venues = () => {
                 </CardContent>
                 <CardFooter>
                   {user?.role === 'artist' && (
-                    <Button size="sm" className="w-full">
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => handleRequestToPerform(venue)}
+                    >
                       Request to Perform
                     </Button>
                   )}
@@ -123,6 +193,51 @@ const Venues = () => {
           )}
         </div>
       )}
+
+      {/* Performance Request Dialog */}
+      <Dialog open={isRequestOpen} onOpenChange={setIsRequestOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Request to Perform</DialogTitle>
+            <DialogDescription>
+              Send a request to perform at {selectedVenue?.name}. Please provide details about your performance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="date">Proposed Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={requestDate}
+                onChange={(e) => setRequestDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="message">Message to Venue Owner</Label>
+              <Textarea
+                id="message"
+                placeholder="Tell the venue about your performance, requirements, or any other details..."
+                rows={4}
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRequestOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRequestSubmit} 
+              disabled={isSubmitting || !requestDate}
+            >
+              {isSubmitting ? "Sending..." : "Send Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
