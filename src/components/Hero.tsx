@@ -63,13 +63,13 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register?role=artist">
+            <Link to="/auth?role=artist&tab=signup">
               <Button size="lg" className="rounded-full font-medium px-8 group">
                 Join as Artist
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link to="/register?role=venue_owner">
+            <Link to="/auth?role=venue_owner&tab=signup">
               <Button size="lg" variant="outline" className="rounded-full font-medium px-8 text-white border-white hover:bg-white hover:text-black">
                 List Your Venue
               </Button>
