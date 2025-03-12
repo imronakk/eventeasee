@@ -85,6 +85,7 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
     try {
       setLoading(true);
       
+      // Updated query to correctly specify the relationship
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -99,7 +100,8 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
         
       if (error) throw error;
       
-      setMessages(data || []);
+      // This type assertion ensures the data matches our ChatMessage[] type
+      setMessages(data as ChatMessage[]);
       
       // Mark messages as read
       if (data && data.length > 0) {
