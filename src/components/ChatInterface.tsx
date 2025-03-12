@@ -85,12 +85,12 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
     try {
       setLoading(true);
       
-      // Updated query to correctly specify the relationship
+      // Fixing the query to properly specify the relationship with sender_id
       const { data, error } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:sender_id(
+          sender:profiles!messages_sender_id_fkey(
             full_name,
             avatar_url
           )
@@ -100,8 +100,8 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
         
       if (error) throw error;
       
-      // This type assertion ensures the data matches our ChatMessage[] type
-      setMessages(data as ChatMessage[]);
+      // First convert to unknown to bypass TypeScript's type checking, then to ChatMessage[]
+      setMessages((data as unknown) as ChatMessage[]);
       
       // Mark messages as read
       if (data && data.length > 0) {
