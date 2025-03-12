@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, HomeIcon, BarChart3Icon, Settings2Icon, UsersIcon, CheckIcon, XIcon } from 'lucide-react';
+import { CalendarIcon, HomeIcon, BarChart3Icon, Settings2Icon, UsersIcon, CheckIcon, XIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
+import ChatInterface from '@/components/ChatInterface';
 
 const VenueDashboard = () => {
   const { user } = useAuth();
@@ -21,12 +22,38 @@ const VenueDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<'accept' | 'decline' | null>(null);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
 
   // Fetch artist requests from the database
   useEffect(() => {
     if (user) {
       fetchArtistRequests();
     }
+  }, [user]);
+
+  // Subscribe to changes in show_requests
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'show_requests'
+        },
+        () => {
+          // Refresh the requests when there's an update
+          fetchArtistRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchArtistRequests = async () => {
@@ -68,8 +95,7 @@ const VenueDashboard = () => {
             name
           )
         `)
-        .in('venue_id', venueIds)
-        .eq('status', 'pending');
+        .in('venue_id', venueIds);
         
       if (requestsError) throw requestsError;
       
@@ -78,7 +104,7 @@ const VenueDashboard = () => {
       
       const { data: artistProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, avatar_url')
         .in('id', artistIds);
         
       if (profilesError) throw profilesError;
@@ -88,7 +114,9 @@ const VenueDashboard = () => {
         const artistProfile = artistProfiles?.find(profile => profile.id === request.artists?.id);
         return {
           ...request,
-          artistName: artistProfile?.full_name || 'Unknown Artist'
+          artistName: artistProfile?.full_name || 'Unknown Artist',
+          artistId: request.artists?.id,
+          artistAvatar: artistProfile?.avatar_url
         };
       }) || [];
       
@@ -124,6 +152,11 @@ const VenueDashboard = () => {
     setSelectedRequest(request);
     setActionType('decline');
     setActionDialogOpen(true);
+  };
+
+  const handleOpenChat = (request: any) => {
+    setSelectedRequest(request);
+    setChatDialogOpen(true);
   };
 
   const confirmRequestAction = async () => {
@@ -218,10 +251,10 @@ const VenueDashboard = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Artist Requests</CardTitle>
-                <CardDescription>You have {artistRequests.length} pending artist requests</CardDescription>
+                <CardDescription>You have {artistRequests.filter(req => req.status === 'pending').length} pending artist requests</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{artistRequests.length}</div>
+                <div className="text-2xl font-bold">{artistRequests.filter(req => req.status === 'pending').length}</div>
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => setActiveTab("artists")}>
@@ -311,14 +344,24 @@ const VenueDashboard = () => {
                       <div>
                         <h3 className="font-medium">{request.artistName}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Proposed date: {format(new Date(request.proposed_date), 'PPP')} • Status: <span className="capitalize">{request.status}</span>
+                          Proposed date: {format(new Date(request.proposed_date), 'PPP')}
                         </p>
+                        <div className="mt-1">
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            request.status === 'accepted' ? 'bg-green-100 text-green-800' : 
+                            request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {request.status === 'accepted' ? 'Accepted' : 
+                             request.status === 'rejected' ? 'Declined' : 'Pending'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex gap-2 mt-2 md:mt-0">
+                      <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => navigate(`/artists/${request.artists?.id}`)}
+                          onClick={() => navigate(`/artists/${request.artistId}`)}
                         >
                           View Artist
                         </Button>
@@ -329,28 +372,41 @@ const VenueDashboard = () => {
                         >
                           View Details
                         </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleAcceptRequest(request)}
-                        >
-                          <CheckIcon className="h-4 w-4 mr-1" /> Accept
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleDeclineRequest(request)}
-                        >
-                          <XIcon className="h-4 w-4 mr-1" /> Decline
-                        </Button>
+                        
+                        {request.status === 'accepted' ? (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => handleOpenChat(request)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" /> Chat
+                          </Button>
+                        ) : request.status === 'pending' ? (
+                          <>
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => handleAcceptRequest(request)}
+                            >
+                              <CheckIcon className="h-4 w-4 mr-1" /> Accept
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeclineRequest(request)}
+                            >
+                              <XIcon className="h-4 w-4 mr-1" /> Decline
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No pending requests</p>
+                  <p className="text-muted-foreground">No requests</p>
                   <Button className="mt-4" onClick={() => navigate('/artists')}>
                     Find Artists
                   </Button>
@@ -451,6 +507,30 @@ const VenueDashboard = () => {
                 </Button>
               </div>
             )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Chat Dialog */}
+      <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[600px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Chat with {selectedRequest?.artistName}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          {selectedRequest && (
+            <div className="h-[500px]">
+              <ChatInterface 
+                requestId={selectedRequest.id}
+                otherUserId={selectedRequest.artistId}
+                otherUserName={selectedRequest.artistName}
+                otherUserAvatar={selectedRequest.artistAvatar}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

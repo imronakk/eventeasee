@@ -3,11 +3,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, Calendar, MapPin, Star, CheckCircle2, Clock } from 'lucide-react';
+import { Music, Calendar, MapPin, Star, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import ChatInterface from '@/components/ChatInterface';
 
 interface ArtistProfile {
   id: string;
@@ -37,16 +40,23 @@ const Artist = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [artist, setArtist] = useState<ArtistProfile | null>(null);
   const [showRequests, setShowRequests] = useState<ShowRequest[]>([]);
+  const [userRequests, setUserRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchArtistProfile(id);
       fetchShowRequests(id);
+      if (user) {
+        fetchUserRequests(id);
+      }
     }
-  }, [id]);
+  }, [id, user]);
 
   const fetchArtistProfile = async (artistId: string) => {
     try {
@@ -100,6 +110,39 @@ const Artist = () => {
     }
   };
 
+  const fetchUserRequests = async (artistId: string) => {
+    if (!user) return;
+
+    try {
+      // First, get venue IDs owned by the current user
+      const { data: venues, error: venuesError } = await supabase
+        .from('venues')
+        .select('id')
+        .eq('owner_id', user.id);
+
+      if (venuesError) throw venuesError;
+
+      if (!venues || venues.length === 0) {
+        return;
+      }
+
+      const venueIds = venues.map(venue => venue.id);
+
+      // Then get requests for these venues with this artist
+      const { data: requests, error: requestsError } = await supabase
+        .from('show_requests')
+        .select('*')
+        .eq('artist_id', artistId)
+        .in('venue_id', venueIds);
+
+      if (requestsError) throw requestsError;
+
+      setUserRequests(requests || []);
+    } catch (error: any) {
+      console.error('Error fetching user requests:', error);
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -108,6 +151,14 @@ const Artist = () => {
       .toUpperCase()
       .substring(0, 2);
   };
+
+  const handleOpenChat = (request: any) => {
+    setSelectedRequest(request);
+    setChatDialogOpen(true);
+  };
+
+  // Find accepted requests that the venue owner can chat with
+  const acceptedRequests = userRequests.filter(req => req.status === 'accepted');
 
   if (loading) {
     return (
@@ -165,6 +216,18 @@ const Artist = () => {
                   )}
                 </div>
               </div>
+              
+              {/* Chat button for venue owners with accepted requests */}
+              {user?.role === 'venue_owner' && acceptedRequests.length > 0 && (
+                <div className="mt-4">
+                  <Button 
+                    variant="default"
+                    onClick={() => handleOpenChat(acceptedRequests[0])}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" /> Chat with Artist
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
@@ -282,6 +345,30 @@ const Artist = () => {
           </Card>
         </div>
       </div>
+
+      {/* Chat Dialog */}
+      <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[600px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Chat with {artist.profile?.full_name}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          {selectedRequest && (
+            <div className="h-[500px]">
+              <ChatInterface 
+                requestId={selectedRequest.id}
+                otherUserId={artist.id}
+                otherUserName={artist.profile?.full_name}
+                otherUserAvatar={artist.profile?.avatar_url}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

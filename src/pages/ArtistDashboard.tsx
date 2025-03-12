@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, MusicIcon, BarChart3Icon, Settings2Icon } from 'lucide-react';
+import { CalendarIcon, MusicIcon, BarChart3Icon, Settings2Icon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import ChatInterface from '@/components/ChatInterface';
 
 const ArtistDashboard = () => {
   const { user } = useAuth();
@@ -18,6 +20,9 @@ const ArtistDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [requestDetailsOpen, setRequestDetailsOpen] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
 
   // Mock data for artist dashboard
   const upcomingEvents = [
@@ -29,6 +34,31 @@ const ArtistDashboard = () => {
     if (user) {
       fetchPerformanceRequests();
     }
+  }, [user]);
+
+  // Subscribe to changes in show_requests
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'show_requests'
+        },
+        () => {
+          // Refresh the requests when there's an update
+          fetchPerformanceRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchPerformanceRequests = async () => {
@@ -46,21 +76,39 @@ const ArtistDashboard = () => {
           status,
           venues (
             id,
-            name
+            name,
+            owner_id
           )
         `)
         .eq('artist_id', user.id);
         
       if (error) throw error;
       
+      // Get venue owners' profiles
+      const venueOwnerIds = requests?.map(req => req.venues?.owner_id).filter(Boolean) || [];
+      
+      const { data: ownerProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', venueOwnerIds);
+        
+      if (profilesError) throw profilesError;
+      
       // Process the data
-      const processedRequests = requests?.map(request => ({
-        id: request.id,
-        venueName: request.venues?.name || 'Unknown Venue',
-        date: request.proposed_date,
-        status: request.status,
-        message: request.message
-      })) || [];
+      const processedRequests = requests?.map(request => {
+        const venueOwner = ownerProfiles?.find(profile => profile.id === request.venues?.owner_id);
+        return {
+          id: request.id,
+          venueName: request.venues?.name || 'Unknown Venue',
+          venueId: request.venues?.id,
+          venueOwnerId: request.venues?.owner_id,
+          venueOwnerName: venueOwner?.full_name || 'Venue Owner',
+          venueOwnerAvatar: venueOwner?.avatar_url,
+          date: request.proposed_date,
+          status: request.status,
+          message: request.message
+        };
+      }) || [];
       
       setPendingRequests(processedRequests);
       
@@ -80,18 +128,21 @@ const ArtistDashboard = () => {
     navigate('/profile');
   };
 
-  const handleViewRequest = (requestId: string) => {
-    toast({
-      title: "View request details",
-      description: `Viewing details for request ${requestId}. Full feature coming soon!`,
-    });
+  const handleViewRequest = (request: any) => {
+    setSelectedRequest(request);
+    setRequestDetailsOpen(true);
+  };
+
+  const handleOpenChat = (request: any) => {
+    setSelectedRequest(request);
+    setChatDialogOpen(true);
   };
 
   // Helper function to get badge color based on status
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'success';
+        return 'default';
       case 'rejected':
         return 'destructive';
       case 'pending':
@@ -164,18 +215,15 @@ const ArtistDashboard = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Profile Completion</CardTitle>
-                <CardDescription>Complete your profile to get more bookings</CardDescription>
+                <CardTitle>Accepted Requests</CardTitle>
+                <CardDescription>You have {pendingRequests.filter(r => r.status === 'accepted').length} accepted performance requests</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">70%</div>
-                <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="bg-primary h-full w-[70%]"></div>
-                </div>
+                <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'accepted').length}</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={handleCreateProfile}>
-                  Complete profile
+                <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
+                  View all requests
                 </Button>
               </CardFooter>
             </Card>
@@ -240,11 +288,7 @@ const ArtistDashboard = () => {
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium">{request.venueName}</h3>
                           <Badge 
-                            variant={
-                              request.status === 'accepted' ? 'default' : 
-                              request.status === 'rejected' ? 'destructive' : 
-                              'outline'
-                            }
+                            variant={getStatusBadgeVariant(request.status)}
                             className="capitalize"
                           >
                             {request.status}
@@ -254,9 +298,25 @@ const ArtistDashboard = () => {
                           Proposed date: {format(new Date(request.date), 'PPP')}
                         </p>
                       </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => handleViewRequest(request.id)}>
-                        View Details
-                      </Button>
+                      <div className="flex gap-2 mt-2 md:mt-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewRequest(request)}
+                        >
+                          View Details
+                        </Button>
+                        
+                        {request.status === 'accepted' && (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => handleOpenChat(request)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" /> Chat with Venue
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -299,6 +359,89 @@ const ArtistDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Request Details Dialog */}
+      <AlertDialog open={requestDetailsOpen} onOpenChange={setRequestDetailsOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Performance Request Details</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedRequest && (
+                <div className="space-y-4 py-2">
+                  <div>
+                    <h4 className="font-medium">Venue</h4>
+                    <p>{selectedRequest.venueName}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Status</h4>
+                    <Badge variant={getStatusBadgeVariant(selectedRequest.status)} className="capitalize mt-1">
+                      {selectedRequest.status}
+                    </Badge>
+                    {selectedRequest.status === 'accepted' && (
+                      <p className="mt-2 text-sm text-green-600">
+                        Congratulations! Your request has been accepted. You can now chat with the venue owner to discuss details.
+                      </p>
+                    )}
+                    {selectedRequest.status === 'rejected' && (
+                      <p className="mt-2 text-sm text-red-600">
+                        Your request has been declined by the venue.
+                      </p>
+                    )}
+                    {selectedRequest.status === 'pending' && (
+                      <p className="mt-2 text-sm text-yellow-600">
+                        Your request is still pending a response from the venue.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Proposed Date</h4>
+                    <p>{selectedRequest && format(new Date(selectedRequest.date), 'PPP')}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Your Message</h4>
+                    <p className="text-sm text-muted-foreground">{selectedRequest.message || "No message provided"}</p>
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            {selectedRequest && selectedRequest.status === 'accepted' && (
+              <Button onClick={() => {
+                setChatDialogOpen(true);
+                setRequestDetailsOpen(false);
+              }}>
+                <MessageSquare className="h-4 w-4 mr-2" /> Chat with Venue
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Chat Dialog */}
+      <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[600px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Chat with {selectedRequest?.venueOwnerName}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          {selectedRequest && (
+            <div className="h-[500px]">
+              <ChatInterface 
+                requestId={selectedRequest.id}
+                otherUserId={selectedRequest.venueOwnerId}
+                otherUserName={selectedRequest.venueOwnerName}
+                otherUserAvatar={selectedRequest.venueOwnerAvatar}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
