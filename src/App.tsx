@@ -17,6 +17,7 @@ import VenueDashboard from "./pages/VenueDashboard";
 import AudienceDashboard from "./pages/AudienceDashboard";
 import Profile from "./pages/Profile";
 import Venues from "./pages/Venues";
+import Artist from "./pages/Artist";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -71,7 +72,7 @@ const App = () => (
               
               {/* Artist Routes */}
               <Route path="/artists" element={<NotFound />} />
-              <Route path="/artists/:id" element={<NotFound />} />
+              <Route path="/artists/:id" element={<Artist />} />
               
               {/* Venue Routes */}
               <Route path="/venues" element={<Venues />} />

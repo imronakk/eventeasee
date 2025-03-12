@@ -318,6 +318,13 @@ const VenueDashboard = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => navigate(`/artists/${request.artists?.id}`)}
+                        >
+                          View Artist
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => handleViewRequest(request)}
                         >
                           View Details
