@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +24,7 @@ const VenueDashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [venues, setVenues] = useState<any[]>([]);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Ensure we have the latest data on component mount and when user changes
   useEffect(() => {
@@ -52,8 +52,20 @@ const VenueDashboard = () => {
         },
         (payload) => {
           console.log('Real-time update received:', payload);
-          // Refresh the requests when there's an update
-          fetchRequests();
+          // When we get a real-time update, update the UI immediately
+          if (payload.eventType === 'UPDATE') {
+            const updatedRequest = payload.new;
+            console.log('Updating request in UI:', updatedRequest);
+            
+            setVenueRequests(prevRequests => 
+              prevRequests.map(req => 
+                req.id === updatedRequest.id ? { ...req, status: updatedRequest.status } : req
+              )
+            );
+          } else {
+            // For other event types (INSERT, DELETE), refresh the full list
+            fetchRequests();
+          }
         }
       )
       .subscribe();
@@ -175,17 +187,24 @@ const VenueDashboard = () => {
 
       console.log('Request status updated successfully');
       
-      // Fetch the updated requests to ensure UI is in sync with database
-      await fetchRequests();
+      // Update the local state immediately for better UX
+      setVenueRequests(prevRequests => 
+        prevRequests.map(req => 
+          req.id === selectedRequest.id ? { ...req, status } : req
+        )
+      );
 
       toast({
         title: `Request ${status}`,
-        description: `You have ${status} the performance request from ${selectedRequest.artists.profile.full_name}.`
+        description: `You have ${status} the performance request from ${selectedRequest.artists?.profile?.full_name}.`
       });
 
       // Open chat dialog if accepted
       if (actionType === 'accept') {
+        setConfirmDialogOpen(false);
         setChatDialogOpen(true);
+      } else {
+        setConfirmDialogOpen(false);
       }
     } catch (error: any) {
       console.error(`Error ${actionType}ing request:`, error);
@@ -194,10 +213,27 @@ const VenueDashboard = () => {
         title: `Error ${actionType}ing request`,
         description: error.message || `Could not ${actionType} the request.`
       });
+      setConfirmDialogOpen(false);
     } finally {
       setProcessing(false);
-      setConfirmDialogOpen(false);
     }
+  };
+
+  // Handle tab change and URL query params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['overview', 'venues', 'requests', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Update URL without reloading page
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', value);
+    window.history.pushState({}, '', url);
   };
 
   return (
@@ -212,7 +248,7 @@ const VenueDashboard = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
@@ -257,7 +293,7 @@ const VenueDashboard = () => {
                 <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'pending').length}</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/venue-dashboard?tab=requests')}>
+                <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
                   View Requests
                 </Button>
               </CardFooter>
@@ -271,7 +307,7 @@ const VenueDashboard = () => {
                 <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'accepted').length}</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/venue-dashboard?tab=requests')}>
+                <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
                   View Bookings
                 </Button>
               </CardFooter>
