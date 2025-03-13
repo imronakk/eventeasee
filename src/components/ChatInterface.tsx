@@ -85,12 +85,12 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
     try {
       setLoading(true);
       
-      // Using the proper foreign key relationship specifier
+      // Fix the query to correctly specify the sender relationship
       const { data, error } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:profiles(
+          sender:profiles!messages_sender_id_fkey(
             full_name,
             avatar_url
           )
@@ -100,8 +100,8 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
         
       if (error) throw error;
       
-      // Use a safe type assertion
-      setMessages(data as unknown as ChatMessage[]);
+      // Use double type assertion to bypass TypeScript's type checking
+      setMessages((data as unknown) as ChatMessage[]);
       
       // Mark messages as read
       if (data && data.length > 0) {
