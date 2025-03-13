@@ -47,10 +47,26 @@ const ArtistDashboard = () => {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'show_requests'
+          table: 'show_requests',
+          filter: `artist_id=eq.${user.id}`
         },
         () => {
           // Refresh the requests when there's an update
+          console.log('Show request updated, refreshing data...');
+          fetchPerformanceRequests();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'show_requests',
+          filter: `artist_id=eq.${user.id}`
+        },
+        () => {
+          // Refresh the requests when there's a new request
+          console.log('New show request received, refreshing data...');
           fetchPerformanceRequests();
         }
       )
@@ -66,6 +82,8 @@ const ArtistDashboard = () => {
     
     try {
       setLoading(true);
+      
+      console.log('Fetching performance requests for artist ID:', user.id);
       
       const { data: requests, error } = await supabase
         .from('show_requests')
@@ -84,6 +102,8 @@ const ArtistDashboard = () => {
         
       if (error) throw error;
       
+      console.log('Raw requests data:', requests);
+      
       // Get venue owners' profiles
       const venueOwnerIds = requests?.map(req => req.venues?.owner_id).filter(Boolean) || [];
       
@@ -93,6 +113,8 @@ const ArtistDashboard = () => {
         .in('id', venueOwnerIds);
         
       if (profilesError) throw profilesError;
+      
+      console.log('Owner profiles data:', ownerProfiles);
       
       // Process the data
       const processedRequests = requests?.map(request => {
@@ -109,6 +131,8 @@ const ArtistDashboard = () => {
           message: request.message
         };
       }) || [];
+      
+      console.log('Processed requests:', processedRequests);
       
       setPendingRequests(processedRequests);
       

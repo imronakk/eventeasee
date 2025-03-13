@@ -57,6 +57,7 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
           filter: `show_request_id=eq.${requestId}`
         },
         (payload) => {
+          console.log('New message received:', payload);
           const newMessage = payload.new as ChatMessage;
           // Only add to state if not already there
           setMessages(currentMessages => {
@@ -84,6 +85,7 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
     
     try {
       setLoading(true);
+      console.log('Fetching messages for request ID:', requestId);
       
       // Fix the query to correctly specify the sender relationship
       const { data, error } = await supabase
@@ -99,6 +101,8 @@ const ChatInterface = ({ requestId, otherUserId, otherUserName, otherUserAvatar 
         .order('created_at', { ascending: true });
         
       if (error) throw error;
+      
+      console.log('Fetched message data:', data);
       
       // Use double type assertion to bypass TypeScript's type checking
       setMessages((data as unknown) as ChatMessage[]);
