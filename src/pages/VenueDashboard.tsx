@@ -26,19 +26,23 @@ const VenueDashboard = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
 
+  // Ensure we have the latest data on component mount and when user changes
   useEffect(() => {
     if (user) {
+      console.log('VenueDashboard mounted, fetching data for user:', user.id);
       fetchVenues();
       fetchRequests();
     }
   }, [user]);
 
-  // Subscribe to changes in show_requests
+  // Set up real-time subscription for show_requests table
   useEffect(() => {
     if (!user) return;
     
+    console.log('Setting up real-time subscription for venue owner:', user.id);
+    
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('venue-owner-requests')
       .on(
         'postgres_changes',
         {
@@ -46,7 +50,8 @@ const VenueDashboard = () => {
           schema: 'public',
           table: 'show_requests'
         },
-        () => {
+        (payload) => {
+          console.log('Real-time update received:', payload);
           // Refresh the requests when there's an update
           fetchRequests();
         }
@@ -54,6 +59,7 @@ const VenueDashboard = () => {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -62,12 +68,14 @@ const VenueDashboard = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching venues for owner ID:', user.id);
       const { data, error } = await supabase
         .from('venues')
         .select('*')
         .eq('owner_id', user.id);
 
       if (error) throw error;
+      console.log('Fetched venues:', data);
       setVenues(data || []);
     } catch (error: any) {
       console.error('Error fetching venues:', error);
@@ -84,6 +92,8 @@ const VenueDashboard = () => {
 
     try {
       setLoading(true);
+      console.log('Fetching requests for venue owner:', user.id);
+      
       // First, get venue IDs owned by the current user
       const { data: venues, error: venuesError } = await supabase
         .from('venues')
@@ -93,11 +103,14 @@ const VenueDashboard = () => {
       if (venuesError) throw venuesError;
 
       if (!venues || venues.length === 0) {
+        console.log('No venues found for this owner');
         setVenueRequests([]);
+        setLoading(false);
         return;
       }
 
       const venueIds = venues.map(venue => venue.id);
+      console.log('Found venue IDs:', venueIds);
 
       // Then, get all requests for these venues
       const { data: requests, error: requestsError } = await supabase
@@ -119,6 +132,7 @@ const VenueDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (requestsError) throw requestsError;
+      console.log('Fetched requests:', requests);
 
       setVenueRequests(requests || []);
     } catch (error: any) {
@@ -150,6 +164,7 @@ const VenueDashboard = () => {
     try {
       setProcessing(true);
       const status = actionType === 'accept' ? 'accepted' : 'rejected';
+      console.log(`Updating request ${selectedRequest.id} status to ${status}`);
 
       const { error } = await supabase
         .from('show_requests')
@@ -158,12 +173,10 @@ const VenueDashboard = () => {
 
       if (error) throw error;
 
-      // Update the local state
-      setVenueRequests(prevRequests =>
-        prevRequests.map(req =>
-          req.id === selectedRequest.id ? { ...req, status } : req
-        )
-      );
+      console.log('Request status updated successfully');
+      
+      // Fetch the updated requests to ensure UI is in sync with database
+      await fetchRequests();
 
       toast({
         title: `Request ${status}`,
