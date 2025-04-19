@@ -271,6 +271,42 @@ const VenueDashboard = () => {
     setChatDialogOpen(true);
   };
 
+  const confirmAction = async () => {
+    if (!selectedRequest || !actionType) return;
+
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('show_requests')
+        .update({ status: actionType === 'accept' ? 'accepted' : 'rejected' })
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+
+      setVenueRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.id === selectedRequest.id ? { ...req, status: actionType === 'accept' ? 'accepted' : 'rejected' } : req
+        )
+      );
+
+      toast({
+        title: `Request ${actionType === 'accept' ? 'accepted' : 'declined'}`,
+        description: `The performance request has been ${actionType === 'accept' ? 'accepted' : 'declined'}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Action failed",
+        description: error.message || "Failed to update the request status.",
+      });
+    } finally {
+      setProcessing(false);
+      setConfirmDialogOpen(false);
+      setSelectedRequest(null);
+      setActionType(null);
+    }
+  };
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get('tab');
