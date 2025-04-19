@@ -36,22 +36,21 @@ const ArtistDashboard = () => {
     }
   }, [user]);
 
-  // Subscribe to changes in show_requests
+  // Subscribe to changes in show_requests (including DELETE to cover all cases)
   useEffect(() => {
     if (!user) return;
     
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('schema-db-changes-artist')
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'show_requests',
-          filter: `artist_id=eq.${user.id}`
+          filter: `artist_id=eq.${user.id}`,
         },
         () => {
-          // Refresh the requests when there's an update
           console.log('Show request updated, refreshing data...');
           fetchPerformanceRequests();
         }
@@ -62,11 +61,24 @@ const ArtistDashboard = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'show_requests',
-          filter: `artist_id=eq.${user.id}`
+          filter: `artist_id=eq.${user.id}`,
         },
         () => {
-          // Refresh the requests when there's a new request
           console.log('New show request received, refreshing data...');
+          fetchPerformanceRequests();
+        }
+      )
+      // Also handle deletion just in case venue cancels
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'show_requests',
+          filter: `artist_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('Show request deleted, refreshing data...');
           fetchPerformanceRequests();
         }
       )
