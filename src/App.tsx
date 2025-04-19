@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +17,8 @@ import AudienceDashboard from "./pages/AudienceDashboard";
 import Profile from "./pages/Profile";
 import Venues from "./pages/Venues";
 import Artist from "./pages/Artist";
-import Artists from "./pages/Artists"; // Added import for Artists page
+import Artists from "./pages/Artists";
+import Events from "./pages/Events";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -72,7 +72,7 @@ const App = () => (
               />
               
               {/* Artist Routes */}
-              <Route path="/artists" element={<Artists />} />  {/* Changed from NotFound to Artists */}
+              <Route path="/artists" element={<Artists />} />
               <Route path="/artists/:id" element={<Artist />} />
               
               {/* Venue Routes */}
@@ -80,7 +80,7 @@ const App = () => (
               <Route path="/venues/:id" element={<NotFound />} />
               
               {/* Event Routes */}
-              <Route path="/events" element={<NotFound />} />
+              <Route path="/events" element={<Events />} />
               <Route path="/events/:id" element={<NotFound />} />
               <Route 
                 path="/events/:id/book" 
