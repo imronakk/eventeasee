@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, BuildingIcon, BarChart3Icon, Settings2Icon, CheckIcon, XIcon, MessageSquare } from 'lucide-react';
+import { CalendarIcon, BuildingIcon, BarChart3Icon, Settings2Icon, CheckIcon, XIcon, MessageSquare, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,12 @@ const VenueDashboard = () => {
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Ensure we have the latest data on component mount and when user changes
+  const [artists, setArtists] = useState<any[]>([]);
+  const [artistsLoading, setArtistsLoading] = useState(false);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [artistToRequest, setArtistToRequest] = useState<any>(null);
+  const [requestMessage, setRequestMessage] = useState('');
+
   useEffect(() => {
     if (user) {
       console.log('VenueDashboard mounted, fetching data for user:', user.id);
@@ -35,7 +40,12 @@ const VenueDashboard = () => {
     }
   }, [user]);
 
-  // Set up real-time subscription for show_requests table
+  useEffect(() => {
+    if (activeTab === 'artists') {
+      fetchArtists();
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (!user) return;
     
@@ -52,18 +62,14 @@ const VenueDashboard = () => {
         },
         (payload) => {
           console.log('Real-time update received:', payload);
-          // When we get a real-time update, update the UI immediately
           if (payload.eventType === 'UPDATE') {
             const updatedRequest = payload.new;
-            console.log('Updating request in UI:', updatedRequest);
-            
             setVenueRequests(prevRequests => 
               prevRequests.map(req => 
                 req.id === updatedRequest.id ? { ...req, status: updatedRequest.status } : req
               )
             );
           } else {
-            // For other event types (INSERT, DELETE), refresh the full list
             fetchRequests();
           }
         }
@@ -87,10 +93,8 @@ const VenueDashboard = () => {
         .eq('owner_id', user.id);
 
       if (error) throw error;
-      console.log('Fetched venues:', data);
       setVenues(data || []);
     } catch (error: any) {
-      console.error('Error fetching venues:', error);
       toast({
         variant: "destructive",
         title: "Error fetching venues",
@@ -106,25 +110,21 @@ const VenueDashboard = () => {
       setLoading(true);
       console.log('Fetching requests for venue owner:', user.id);
       
-      // First, get venue IDs owned by the current user
-      const { data: venues, error: venuesError } = await supabase
+      const { data: venuesList, error: venuesError } = await supabase
         .from('venues')
         .select('id')
         .eq('owner_id', user.id);
 
       if (venuesError) throw venuesError;
 
-      if (!venues || venues.length === 0) {
-        console.log('No venues found for this owner');
+      if (!venuesList || venuesList.length === 0) {
         setVenueRequests([]);
         setLoading(false);
         return;
       }
 
-      const venueIds = venues.map(venue => venue.id);
-      console.log('Found venue IDs:', venueIds);
+      const venueIds = venuesList.map(venue => venue.id);
 
-      // Then, get all requests for these venues
       const { data: requests, error: requestsError } = await supabase
         .from('show_requests')
         .select(`
@@ -144,11 +144,9 @@ const VenueDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (requestsError) throw requestsError;
-      console.log('Fetched requests:', requests);
 
       setVenueRequests(requests || []);
     } catch (error: any) {
-      console.error('Error fetching venue requests:', error);
       toast({
         variant: "destructive",
         title: "Error fetching requests",
@@ -156,6 +154,109 @@ const VenueDashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchArtists = async () => {
+    setArtistsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('artists')
+        .select(`
+          id,
+          description,
+          experience,
+          introduction_video_url,
+          genre,
+          profiles!artists_id_fkey (
+            full_name,
+            avatar_url
+          )
+        `);
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching artists",
+          description: error.message || "Could not fetch artists."
+        });
+        setArtists([]);
+      } else if (data) {
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          description: item.description,
+          experience: item.experience,
+          introductionVideo: item.introduction_video_url,
+          genres: item.genre || [],
+          userName: item.profiles?.full_name || 'Unknown Artist',
+          userAvatar: item.profiles?.avatar_url,
+        }));
+        setArtists(formatted);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching artists",
+        description: error.message || "Could not fetch artists."
+      });
+      setArtists([]);
+    } finally {
+      setArtistsLoading(false);
+    }
+  };
+
+  const openRequestDialog = (artist: any) => {
+    setArtistToRequest(artist);
+    setRequestMessage('');
+    setRequestDialogOpen(true);
+  };
+
+  const submitPerformanceRequest = async () => {
+    if (!artistToRequest || !venues.length) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Artist or venues not selected properly."
+      });
+      return;
+    }
+
+    const venueId = venues[0].id;
+    const proposedDate = new Date();
+    proposedDate.setDate(proposedDate.getDate() + 7);
+
+    try {
+      setProcessing(true);
+      const { error } = await supabase
+        .from('show_requests')
+        .insert([{
+          artist_id: artistToRequest.id,
+          venue_id: venueId,
+          proposed_date: proposedDate.toISOString(),
+          initiator: 'venue_owner',
+          status: 'pending',
+          message: requestMessage || null
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Sent",
+        description: `Performance request sent to ${artistToRequest.userName}.`
+      });
+
+      setRequestDialogOpen(false);
+      setArtistToRequest(null);
+      fetchRequests();
+      setActiveTab('requests');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send request",
+        description: error.message || "Please try again."
+      });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -170,67 +271,16 @@ const VenueDashboard = () => {
     setChatDialogOpen(true);
   };
 
-  const confirmAction = async () => {
-    if (!selectedRequest || !actionType) return;
-
-    try {
-      setProcessing(true);
-      const status = actionType === 'accept' ? 'accepted' : 'rejected';
-      console.log(`Updating request ${selectedRequest.id} status to ${status}`);
-
-      const { error } = await supabase
-        .from('show_requests')
-        .update({ status })
-        .eq('id', selectedRequest.id);
-
-      if (error) throw error;
-
-      console.log('Request status updated successfully');
-      
-      // Update the local state immediately for better UX
-      setVenueRequests(prevRequests => 
-        prevRequests.map(req => 
-          req.id === selectedRequest.id ? { ...req, status } : req
-        )
-      );
-
-      toast({
-        title: `Request ${status}`,
-        description: `You have ${status} the performance request from ${selectedRequest.artists?.profile?.full_name}.`
-      });
-
-      // Open chat dialog if accepted
-      if (actionType === 'accept') {
-        setConfirmDialogOpen(false);
-        setChatDialogOpen(true);
-      } else {
-        setConfirmDialogOpen(false);
-      }
-    } catch (error: any) {
-      console.error(`Error ${actionType}ing request:`, error);
-      toast({
-        variant: "destructive",
-        title: `Error ${actionType}ing request`,
-        description: error.message || `Could not ${actionType} the request.`
-      });
-      setConfirmDialogOpen(false);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Handle tab change and URL query params
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'venues', 'requests', 'settings'].includes(tabParam)) {
+    if (tabParam && ['overview', 'venues', 'requests', 'settings', 'artists'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, []);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Update URL without reloading page
     const url = new URL(window.location.href);
     url.searchParams.set('tab', value);
     window.history.pushState({}, '', url);
@@ -249,7 +299,7 @@ const VenueDashboard = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
+        <TabsList className="grid grid-cols-5 md:w-[750px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -261,6 +311,10 @@ const VenueDashboard = () => {
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Requests</span>
+          </TabsTrigger>
+          <TabsTrigger value="artists" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Artists</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings2Icon className="h-4 w-4" />
@@ -436,6 +490,65 @@ const VenueDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="artists" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Artists</CardTitle>
+              <CardDescription>Browse artists and send performance requests</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {artistsLoading ? (
+                <div className="text-center text-gray-600 py-8">Loading artists...</div>
+              ) : artists.length === 0 ? (
+                <div className="text-center text-gray-600 py-8">No artists found.</div>
+              ) : (
+                <div className="space-y-4">
+                  {artists.map((artist) => (
+                    <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          {artist.userAvatar ? (
+                            <img
+                              src={artist.userAvatar}
+                              alt={artist.userName}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
+                              {artist.userName.charAt(0)}
+                            </div>
+                          )}
+                          <h3 className="font-medium">{artist.userName}</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
+                          {artist.description || 'No description available.'}
+                        </p>
+                        {artist.genres && artist.genres.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {artist.genres.map((genre: string) => (
+                              <span
+                                key={genre}
+                                className="text-xs font-medium bg-primary/20 text-primary rounded-full px-2 py-1"
+                              >
+                                {genre}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-4 md:mt-0">
+                        <Button variant="default" size="sm" onClick={() => openRequestDialog(artist)}>
+                          Request Performance
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
@@ -459,7 +572,6 @@ const VenueDashboard = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -485,7 +597,6 @@ const VenueDashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Chat Dialog */}
       <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
         <AlertDialogContent className="sm:max-w-[600px]">
           <AlertDialogHeader>
@@ -505,6 +616,34 @@ const VenueDashboard = () => {
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Performance Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              Send a performance request to {artistToRequest?.userName}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="px-6 py-2">
+            <label htmlFor="requestMessage" className="block font-medium mb-1">Message (optional)</label>
+            <textarea
+              id="requestMessage"
+              className="w-full border border-gray-300 rounded-md p-2 resize-none"
+              rows={4}
+              value={requestMessage}
+              onChange={(e) => setRequestMessage(e.target.value)}
+              placeholder="Enter your message or details about the request"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={submitPerformanceRequest} disabled={processing}>
+              {processing ? 'Sending...' : 'Send Request'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
