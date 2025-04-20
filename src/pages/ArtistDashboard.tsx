@@ -131,6 +131,8 @@ const ArtistDashboard = () => {
       // Process the data
       const processedRequests = requests?.map(request => {
         const venueOwner = ownerProfiles?.find(profile => profile.id === request.venues?.owner_id);
+        // Normalize status to lowercase trimmed string for consistency
+        const statusNormalized = request.status ? request.status.toLowerCase().trim() : 'pending';
         return {
           id: request.id,
           venueName: request.venues?.name || 'Unknown Venue',
@@ -139,12 +141,13 @@ const ArtistDashboard = () => {
           venueOwnerName: venueOwner?.full_name || 'Venue Owner',
           venueOwnerAvatar: venueOwner?.avatar_url,
           date: request.proposed_date,
-          status: request.status,
+          status: statusNormalized,
           message: request.message
         };
       }) || [];
       
       console.log('Processed requests:', processedRequests);
+      console.log('Statuses:', processedRequests.map(r => r.status));
       
       setPendingRequests(processedRequests);
       
@@ -176,7 +179,7 @@ const ArtistDashboard = () => {
 
   // Helper function to get badge color based on status
   const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'accepted':
         return 'default';
       case 'rejected':
@@ -318,43 +321,46 @@ const ArtistDashboard = () => {
                 </div>
               ) : pendingRequests.length > 0 ? (
                 <div className="space-y-4">
-                  {pendingRequests.map((request) => (
-                    <div key={request.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{request.venueName}</h3>
-                          <Badge 
-                            variant={getStatusBadgeVariant(request.status)}
-                            className="capitalize"
-                          >
-                            {request.status}
-                          </Badge>
+                  {pendingRequests.map((request) => {
+                    const statusLower = request.status.toLowerCase();
+                    return (
+                      <div key={request.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{request.venueName}</h3>
+                            <Badge 
+                              variant={getStatusBadgeVariant(request.status)}
+                              className="capitalize"
+                            >
+                              {statusLower}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Proposed date: {format(new Date(request.date), 'PPP')}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Proposed date: {format(new Date(request.date), 'PPP')}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 mt-2 md:mt-0">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleViewRequest(request)}
-                        >
-                          View Details
-                        </Button>
-                        
-                        {request.status === 'accepted' && (
+                        <div className="flex gap-2 mt-2 md:mt-0">
                           <Button 
-                            variant="default" 
-                            size="sm"
-                            onClick={() => handleOpenChat(request)}
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewRequest(request)}
                           >
-                            <MessageSquare className="h-4 w-4 mr-1" /> Chat with Venue
+                            View Details
                           </Button>
-                        )}
+                          
+                          {statusLower === 'accepted' && (
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => handleOpenChat(request)}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" /> Chat with Venue
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -411,19 +417,19 @@ const ArtistDashboard = () => {
                   <div>
                     <h4 className="font-medium">Status</h4>
                     <Badge variant={getStatusBadgeVariant(selectedRequest.status)} className="capitalize mt-1">
-                      {selectedRequest.status}
+                      {selectedRequest.status.toLowerCase()}
                     </Badge>
-                    {selectedRequest.status === 'accepted' && (
+                    {selectedRequest.status.toLowerCase() === 'accepted' && (
                       <p className="mt-2 text-sm text-green-600">
                         Congratulations! Your request has been accepted. You can now chat with the venue owner to discuss details.
                       </p>
                     )}
-                    {selectedRequest.status === 'rejected' && (
+                    {selectedRequest.status.toLowerCase() === 'rejected' && (
                       <p className="mt-2 text-sm text-red-600">
                         Your request has been declined by the venue.
                       </p>
                     )}
-                    {selectedRequest.status === 'pending' && (
+                    {selectedRequest.status.toLowerCase() === 'pending' && (
                       <p className="mt-2 text-sm text-yellow-600">
                         Your request is still pending a response from the venue.
                       </p>
@@ -443,7 +449,7 @@ const ArtistDashboard = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
-            {selectedRequest && selectedRequest.status === 'accepted' && (
+            {selectedRequest && selectedRequest.status.toLowerCase() === 'accepted' && (
               <Button onClick={() => {
                 setChatDialogOpen(true);
                 setRequestDetailsOpen(false);
@@ -483,3 +489,4 @@ const ArtistDashboard = () => {
 };
 
 export default ArtistDashboard;
+
