@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, TicketIcon, BarChart3Icon, Settings2Icon, StarIcon } from 'lucide-react';
+import { CalendarIcon, TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,6 +23,12 @@ const AudienceDashboard = () => {
   const favoriteArtists = [
     { id: '1', name: 'Jazz Quartet', genre: 'Jazz' },
     { id: '2', name: 'Rock Band', genre: 'Rock' },
+  ];
+
+  const upcomingEvents = [
+    { id: '1', title: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', ticketPrice: 45 },
+    { id: '2', title: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', ticketPrice: 60 },
+    { id: '3', title: 'Classical Evening', venue: 'Grand Hall', date: '2023-12-20', time: '7:30 PM', ticketPrice: 50 },
   ];
 
   const handleUpdatePreferences = () => {
@@ -109,6 +115,33 @@ const AudienceDashboard = () => {
               </CardFooter>
             </Card>
           </div>
+
+          {/* New Upcoming Events List with Book Tickets */}
+          <section>
+            <h2 className="text-xl font-semibold mb-4">Book Tickets for Upcoming Events</h2>
+            <div className="space-y-4">
+              {upcomingEvents.map((event) => (
+                <Card key={event.id}>
+                  <CardHeader>
+                    <CardTitle>{event.title}</CardTitle>
+                    <CardDescription>{event.venue}</CardDescription>
+                    <CardDescription>{event.date} at {event.time}</CardDescription>
+                    <CardDescription>Price: ${event.ticketPrice}</CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => navigate(`/events/${event.id}/book`)}
+                      variant="default"
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      Book Tickets
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </section>
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-4">
@@ -219,3 +252,5 @@ const AudienceDashboard = () => {
 };
 
 export default AudienceDashboard;
+
+
