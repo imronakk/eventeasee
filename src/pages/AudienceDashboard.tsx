@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -7,22 +7,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Artist {
+  id: string;
+  name: string;
+  genre: string;
+}
 
 const AudienceDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [loadingArtists, setLoadingArtists] = useState(false);
 
   // Mock data for audience dashboard
   const upcomingTickets = [
     { id: '1', eventName: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', quantity: 2 },
     { id: '2', eventName: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', quantity: 1 },
-  ];
-
-  const favoriteArtists = [
-    { id: '1', name: 'Jazz Quartet', genre: 'Jazz' },
-    { id: '2', name: 'Rock Band', genre: 'Rock' },
   ];
 
   const upcomingEvents = [
@@ -37,6 +41,49 @@ const AudienceDashboard = () => {
       description: "Feature coming soon! This will allow you to set your preferred genres and artists.",
     });
   };
+
+  // Fetch artists when the Artists tab is active
+  useEffect(() => {
+    const fetchArtists = async () => {
+      setLoadingArtists(true);
+      try {
+        const { data, error } = await supabase
+          .from('artists')
+          .select(`
+            id,
+            description,
+            genre,
+            profiles!artists_id_fkey (
+              full_name
+            )
+          `);
+
+        if (error) {
+          throw error;
+        }
+
+        // Map data to Artist[] with name and genre
+        const fetchedArtists: Artist[] = data?.map((item: any) => ({
+          id: item.id,
+          name: item.profiles?.full_name || 'Unknown Artist',
+          genre: item.genre && Array.isArray(item.genre) ? item.genre.join(', ') : '',
+        })) || [];
+        setArtists(fetchedArtists);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching artists",
+          description: error.message || "Unable to load artists.",
+        });
+      } finally {
+        setLoadingArtists(false);
+      }
+    };
+
+    if (activeTab === 'artists') {
+      fetchArtists();
+    }
+  }, [activeTab, toast]);
 
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
@@ -60,9 +107,9 @@ const AudienceDashboard = () => {
             <TicketIcon className="h-4 w-4" />
             <span className="hidden sm:inline">My Tickets</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex items-center gap-2">
+          <TabsTrigger value="artists" className="flex items-center gap-2">
             <StarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Favorites</span>
+            <span className="hidden sm:inline">Artists</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings2Icon className="h-4 w-4" />
@@ -89,13 +136,13 @@ const AudienceDashboard = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Favorite Artists</CardTitle>
-                <CardDescription>You're following {favoriteArtists.length} artists</CardDescription>
+                <CardDescription>You're following {0} artists</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{favoriteArtists.length}</div>
+                <div className="text-2xl font-bold">0</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("favorites")}>
+                <Button variant="outline" className="w-full" disabled>
                   View favorites
                 </Button>
               </CardFooter>
@@ -185,43 +232,41 @@ const AudienceDashboard = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="favorites" className="space-y-4">
+        <TabsContent value="artists" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Favorite Artists</CardTitle>
-              <CardDescription>Artists you're following</CardDescription>
+              <CardTitle>All Registered Artists</CardTitle>
+              <CardDescription>Artists registered on our website</CardDescription>
             </CardHeader>
             <CardContent>
-              {favoriteArtists.length > 0 ? (
-                <div className="space-y-4">
-                  {favoriteArtists.map((artist) => (
-                    <div key={artist.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{artist.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {artist.genre}
-                        </p>
-                      </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/artists/${artist.id}`)}>
-                        View Artist
-                      </Button>
-                    </div>
-                  ))}
+              {loadingArtists ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading artists...
+                </div>
+              ) : artists.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No artists found.
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">You haven't added any favorites yet</p>
-                  <Button className="mt-4" onClick={() => navigate('/artists')}>
-                    Browse Artists
-                  </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {artists.map(artist => (
+                    <Card key={artist.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <CardTitle>{artist.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{artist.genre}</p>
+                      </CardContent>
+                      <CardFooter>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/artists/${artist.id}`)}>
+                          View Profile
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
                 </div>
               )}
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/artists')}>
-                Discover Artists
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -252,5 +297,3 @@ const AudienceDashboard = () => {
 };
 
 export default AudienceDashboard;
-
-
