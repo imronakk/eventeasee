@@ -276,16 +276,17 @@ const VenueDashboard = () => {
 
     setProcessing(true);
     try {
+      const newStatus = actionType === 'accept' ? 'accepted' : 'rejected';
       const { error } = await supabase
         .from('show_requests')
-        .update({ status: actionType === 'accept' ? 'accepted' : 'rejected' })
+        .update({ status: newStatus })
         .eq('id', selectedRequest.id);
 
       if (error) throw error;
 
       setVenueRequests(prevRequests =>
         prevRequests.map(req =>
-          req.id === selectedRequest.id ? { ...req, status: actionType === 'accept' ? 'accepted' : 'rejected' } : req
+          req.id === selectedRequest.id ? { ...req, status: newStatus } : req
         )
       );
 
@@ -464,60 +465,63 @@ const VenueDashboard = () => {
                 </div>
               ) : venueRequests.length > 0 ? (
                 <div className="space-y-4">
-                  {venueRequests.map((request) => (
-                    <div key={request.id} className="p-4 border rounded-lg">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{request.artists?.profile?.full_name || 'Unknown Artist'}</h3>
-                            <Badge 
-                              variant={request.status === 'accepted' ? 'default' : request.status === 'rejected' ? 'destructive' : 'outline'}
-                              className="capitalize"
-                            >
-                              {request.status}
-                            </Badge>
+                  {venueRequests.map((request) => {
+                    const status = request.status?.toLowerCase() || 'pending';
+                    return (
+                      <div key={request.id} className="p-4 border rounded-lg">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{request.artists?.profile?.full_name || 'Unknown Artist'}</h3>
+                              <Badge 
+                                variant={status === 'accepted' ? 'default' : status === 'rejected' ? 'destructive' : 'outline'}
+                                className="capitalize"
+                              >
+                                {status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Venue: {request.venues?.name} | Date: {format(new Date(request.proposed_date), 'PPP')}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Venue: {request.venues?.name} | Date: {format(new Date(request.proposed_date), 'PPP')}
-                          </p>
-                        </div>
-                        
-                        <div className="flex gap-2 mt-2 md:mt-0">
-                          {request.status === 'pending' ? (
-                            <>
+                          
+                          <div className="flex gap-2 mt-2 md:mt-0">
+                            {status === 'pending' ? (
+                              <>
+                                <Button 
+                                  variant="default" 
+                                  size="sm" 
+                                  onClick={() => handleAction(request, 'accept')}
+                                  className="flex items-center gap-1"
+                                >
+                                  <CheckIcon className="h-4 w-4" /> Accept
+                                </Button>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm" 
+                                  onClick={() => handleAction(request, 'decline')}
+                                  className="flex items-center gap-1"
+                                >
+                                  <XIcon className="h-4 w-4" /> Decline
+                                </Button>
+                              </>
+                            ) : status === 'accepted' ? (
                               <Button 
                                 variant="default" 
-                                size="sm" 
-                                onClick={() => handleAction(request, 'accept')}
+                                size="sm"
+                                onClick={() => handleOpenChat(request)}
                                 className="flex items-center gap-1"
                               >
-                                <CheckIcon className="h-4 w-4" /> Accept
+                                <MessageSquare className="h-4 w-4" /> Chat with Artist
                               </Button>
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => handleAction(request, 'decline')}
-                                className="flex items-center gap-1"
-                              >
-                                <XIcon className="h-4 w-4" /> Decline
-                              </Button>
-                            </>
-                          ) : request.status === 'accepted' ? (
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => handleOpenChat(request)}
-                              className="flex items-center gap-1"
-                            >
-                              <MessageSquare className="h-4 w-4" /> Chat with Artist
-                            </Button>
-                          ) : (
-                            <Badge variant="outline">No actions available</Badge>
-                          )}
+                            ) : (
+                              <Badge variant="outline">No actions available</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">
