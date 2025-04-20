@@ -293,6 +293,8 @@ const VenueDashboard = () => {
         title: `Request ${actionType === 'accept' ? 'accepted' : 'declined'}`,
         description: `The performance request has been ${actionType === 'accept' ? 'accepted' : 'declined'}.`,
       });
+
+      await fetchRequests();
     } catch (error: any) {
       toast({
         variant: "destructive",
