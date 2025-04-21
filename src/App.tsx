@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import MainLayout from "@/layouts/MainLayout";
 
 // Import pages
 import Index from "./pages/Index";
@@ -44,30 +45,36 @@ const App = () => (
               
               {/* Auth Routes */}
               <Route path="/auth" element={<Auth />} />
-              
-              {/* Dashboard Routes */}
+
+              {/* Dashboard Routes wrapped with MainLayout */}
               <Route 
                 path="/artist-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['artist']}>
-                    <ArtistDashboard />
-                  </ProtectedRoute>
+                  <MainLayout>
+                    <ProtectedRoute allowedRoles={['artist']}>
+                      <ArtistDashboard />
+                    </ProtectedRoute>
+                  </MainLayout>
                 } 
               />
               <Route 
                 path="/venue-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['venue_owner']}>
-                    <VenueDashboard />
-                  </ProtectedRoute>
+                  <MainLayout>
+                    <ProtectedRoute allowedRoles={['venue_owner']}>
+                      <VenueDashboard />
+                    </ProtectedRoute>
+                  </MainLayout>
                 } 
               />
               <Route 
                 path="/audience-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['audience']}>
-                    <AudienceDashboard />
-                  </ProtectedRoute>
+                  <MainLayout>
+                    <ProtectedRoute allowedRoles={['audience']}>
+                      <AudienceDashboard />
+                    </ProtectedRoute>
+                  </MainLayout>
                 } 
               />
               
@@ -91,13 +98,15 @@ const App = () => (
                 } 
               />
               
-              {/* User Profile */}
+              {/* User Profile wrapped with MainLayout */}
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
+                  <MainLayout>
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  </MainLayout>
                 } 
               />
               
