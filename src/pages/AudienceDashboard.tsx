@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
+import { TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,15 @@ interface Artist {
   genre: string;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  venue: string;
+  date: string;
+  time: string;
+  ticketPrice: number;
+}
+
 const AudienceDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -22,18 +31,15 @@ const AudienceDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loadingArtists, setLoadingArtists] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
-  // Mock data for audience dashboard
   const upcomingTickets = [
     { id: '1', eventName: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', quantity: 2 },
     { id: '2', eventName: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', quantity: 1 },
   ];
 
-  const upcomingEvents = [
-    { id: '1', title: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', ticketPrice: 45 },
-    { id: '2', title: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', ticketPrice: 60 },
-    { id: '3', title: 'Classical Evening', venue: 'Grand Hall', date: '2023-12-20', time: '7:30 PM', ticketPrice: 50 },
-  ];
+  // Remove mock upcomingEvents, instead fetch events below
 
   const handleUpdatePreferences = () => {
     toast({
@@ -51,7 +57,6 @@ const AudienceDashboard = () => {
           .from('artists')
           .select(`
             id,
-            description,
             genre,
             profiles!artists_id_fkey (
               full_name
@@ -62,7 +67,6 @@ const AudienceDashboard = () => {
           throw error;
         }
 
-        // Map data to Artist[] with name and genre
         const fetchedArtists: Artist[] = data?.map((item: any) => ({
           id: item.id,
           name: item.profiles?.full_name || 'Unknown Artist',
@@ -82,6 +86,55 @@ const AudienceDashboard = () => {
 
     if (activeTab === 'artists') {
       fetchArtists();
+    }
+  }, [activeTab, toast]);
+
+  // Fetch events when overview tab active - to display in booking section
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoadingEvents(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select(`
+            id,
+            name,
+            venue_id,
+            event_date,
+            status,
+            // We'll fetch related venue name below
+            venue:venues!events_venue_id_fkey (
+              name
+            )
+          `)
+          .eq('status', 'published')
+          .gte('event_date', new Date().toISOString())
+          .order('event_date', { ascending: true });
+
+        if (error) throw error;
+
+        const formattedEvents: Event[] = (data || []).map((ev: any) => ({
+          id: ev.id,
+          title: ev.name,
+          venue: ev.venue?.name || 'Venue to be announced',
+          date: new Date(ev.event_date).toLocaleDateString(),
+          time: '',
+          ticketPrice: 0, // no price from this query, you may add if needed
+        }));
+        setEvents(formattedEvents);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching events",
+          description: error.message || "Could not load events",
+        });
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+
+    if (activeTab === 'overview') {
+      fetchEvents();
     }
   }, [activeTab, toast]);
 
@@ -133,20 +186,9 @@ const AudienceDashboard = () => {
                 </Button>
               </CardFooter>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Favorite Artists</CardTitle>
-                <CardDescription>You're following {0} artists</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" disabled>
-                  View favorites
-                </Button>
-              </CardFooter>
-            </Card>
+
+            {/* Removed Favorites Card */}
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Recommended Events</CardTitle>
@@ -163,30 +205,36 @@ const AudienceDashboard = () => {
             </Card>
           </div>
 
-          {/* New Upcoming Events List with Book Tickets */}
+          {/* Upcoming Events List with Book Tickets from real events */}
           <section>
             <h2 className="text-xl font-semibold mb-4">Book Tickets for Upcoming Events</h2>
             <div className="space-y-4">
-              {upcomingEvents.map((event) => (
-                <Card key={event.id}>
-                  <CardHeader>
-                    <CardTitle>{event.title}</CardTitle>
-                    <CardDescription>{event.venue}</CardDescription>
-                    <CardDescription>{event.date} at {event.time}</CardDescription>
-                    <CardDescription>Price: ${event.ticketPrice}</CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Button 
-                      onClick={() => navigate(`/events/${event.id}/book`)}
-                      variant="default"
-                      className="w-full flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      Book Tickets
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+              {loadingEvents ? (
+                <div className="text-center text-muted-foreground py-8">Loading events...</div>
+              ) : events.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">No upcoming events available.</div>
+              ) : (
+                events.map((event) => (
+                  <Card key={event.id}>
+                    <CardHeader>
+                      <CardTitle>{event.title}</CardTitle>
+                      <CardDescription>{event.venue}</CardDescription>
+                      <CardDescription>{event.date} {event.time}</CardDescription>
+                      <CardDescription>Price: ${event.ticketPrice}</CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                      <Button
+                        onClick={() => navigate(`/events/${event.id}/book`)}
+                        variant="default"
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        Book Tickets
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
             </div>
           </section>
         </TabsContent>
@@ -216,8 +264,8 @@ const AudienceDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">You haven't purchased any tickets yet</p>
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>You haven't purchased any tickets yet</p>
                   <Button className="mt-4" onClick={() => navigate('/events')}>
                     Browse Events
                   </Button>
@@ -297,3 +345,4 @@ const AudienceDashboard = () => {
 };
 
 export default AudienceDashboard;
+
