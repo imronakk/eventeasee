@@ -39,8 +39,6 @@ const AudienceDashboard = () => {
     { id: '2', eventName: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', quantity: 1 },
   ];
 
-  // Remove mock upcomingEvents, instead fetch events below
-
   const handleUpdatePreferences = () => {
     toast({
       title: "Update preferences",
@@ -48,7 +46,6 @@ const AudienceDashboard = () => {
     });
   };
 
-  // Fetch artists when the Artists tab is active
   useEffect(() => {
     const fetchArtists = async () => {
       setLoadingArtists(true);
@@ -89,7 +86,6 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
-  // Fetch events when overview tab active - to display in booking section
   useEffect(() => {
     const fetchEvents = async () => {
       setLoadingEvents(true);
@@ -102,7 +98,6 @@ const AudienceDashboard = () => {
             venue_id,
             event_date,
             status,
-            // We'll fetch related venue name below
             venue:venues!events_venue_id_fkey (
               name
             )
@@ -119,7 +114,7 @@ const AudienceDashboard = () => {
           venue: ev.venue?.name || 'Venue to be announced',
           date: new Date(ev.event_date).toLocaleDateString(),
           time: '',
-          ticketPrice: 0, // no price from this query, you may add if needed
+          ticketPrice: 0,
         }));
         setEvents(formattedEvents);
       } catch (error: any) {
@@ -187,8 +182,6 @@ const AudienceDashboard = () => {
               </CardFooter>
             </Card>
 
-            {/* Removed Favorites Card */}
-
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Recommended Events</CardTitle>
@@ -205,7 +198,6 @@ const AudienceDashboard = () => {
             </Card>
           </div>
 
-          {/* Upcoming Events List with Book Tickets from real events */}
           <section>
             <h2 className="text-xl font-semibold mb-4">Book Tickets for Upcoming Events</h2>
             <div className="space-y-4">
