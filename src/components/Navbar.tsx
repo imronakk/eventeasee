@@ -41,12 +41,14 @@ const Navbar = () => {
     { title: 'Events', path: '/events' },
   ];
 
-  // Add dashboard link if user is logged in and is an artist or venue owner
+  // Add dashboard link if user is logged in and is artist, venue owner or audience
   if (user) {
     if (user.role === 'artist') {
       navItems.push({ title: 'My Dashboard', path: '/artist-dashboard' });
     } else if (user.role === 'venue_owner') {
       navItems.push({ title: 'My Dashboard', path: '/venue-dashboard' });
+    } else if (user.role === 'audience') {
+      navItems.push({ title: 'My Dashboard', path: '/audience-dashboard' });
     }
   }
 
@@ -77,7 +79,6 @@ const Navbar = () => {
     navigate('/');
   };
 
-  // Get initials for avatar fallback
   const getInitials = (name: string) => {
     if (!name) return 'U';
     return name
@@ -274,3 +275,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
