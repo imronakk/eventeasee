@@ -79,6 +79,37 @@ const ArtistProfileForm = () => {
     });
   };
 
+  // Format YouTube URL to be properly embedded
+  const formatYouTubeUrl = (url: string) => {
+    if (!url) return '';
+    
+    // Check if the URL is already in the embed format
+    if (url.includes('youtube.com/embed/')) return url;
+    
+    // Convert watch URL to embed format
+    let videoId = '';
+    
+    // Get video ID from various YouTube URL formats
+    if (url.includes('youtube.com/watch?v=')) {
+      const urlParams = new URLSearchParams(url.split('?')[1]);
+      videoId = urlParams.get('v') || '';
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1];
+    } else if (url.includes('youtube.com/v/')) {
+      videoId = url.split('youtube.com/v/')[1];
+    } else {
+      // If it's not a recognized YouTube URL, return as is
+      return url;
+    }
+    
+    // If videoId contains additional parameters, remove them
+    if (videoId.includes('&')) {
+      videoId = videoId.split('&')[0];
+    }
+    
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -110,6 +141,9 @@ const ArtistProfileForm = () => {
         if (insertProfileError) throw insertProfileError;
       }
 
+      // Format YouTube URL before saving
+      const formattedVideoUrl = formatYouTubeUrl(formData.introduction_video_url);
+
       if (artistProfile) {
         // Update existing profile
         const { error } = await supabase
@@ -117,7 +151,7 @@ const ArtistProfileForm = () => {
           .update({
             description: formData.description,
             experience: formData.experience,
-            introduction_video_url: formData.introduction_video_url,
+            introduction_video_url: formattedVideoUrl,
             genre: formData.genre,
           })
           .eq('id', user.id);
@@ -131,7 +165,7 @@ const ArtistProfileForm = () => {
             id: user.id,
             description: formData.description,
             experience: formData.experience,
-            introduction_video_url: formData.introduction_video_url,
+            introduction_video_url: formattedVideoUrl,
             genre: formData.genre,
           });
 
@@ -211,6 +245,9 @@ const ArtistProfileForm = () => {
                 onChange={handleChange}
                 placeholder="https://youtube.com/watch?v=..."
               />
+              <p className="text-xs text-muted-foreground">
+                Paste a YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID)
+              </p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col items-start space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

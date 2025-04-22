@@ -35,7 +35,7 @@ const CTASection = () => {
                   <p className="text-muted-foreground text-sm mb-3">
                     Showcase your talent and connect with venues that match your style and ambitions.
                   </p>
-                  <Link to="/register?role=artist" className="text-primary font-medium flex items-center group">
+                  <Link to="/auth?role=artist&tab=signup" className="text-primary font-medium flex items-center group">
                     Join as Artist 
                     <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -53,7 +53,7 @@ const CTASection = () => {
                   <p className="text-muted-foreground text-sm mb-3">
                     Find the perfect artists for your space and create memorable events for your audience.
                   </p>
-                  <Link to="/register?role=venue_owner" className="text-primary font-medium flex items-center group">
+                  <Link to="/auth?role=venue_owner&tab=signup" className="text-primary font-medium flex items-center group">
                     List Your Venue 
                     <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -78,20 +78,20 @@ const CTASection = () => {
             </p>
             
             <div className="space-y-4">
-              <Link to="/register?role=artist">
+              <Link to="/auth?role=artist&tab=signup">
                 <Button className="w-full justify-start" size="lg">
                   <Music className="mr-2 h-5 w-5" />
                   Sign up as an Artist
                 </Button>
               </Link>
-              <Link to="/register?role=venue_owner">
+              <Link to="/auth?role=venue_owner&tab=signup">
                 <Button variant="outline" className="w-full justify-start" size="lg">
                   <MapPin className="mr-2 h-5 w-5" />
                   Sign up as a Venue Owner
                 </Button>
               </Link>
               <div className="text-center text-muted-foreground text-sm mt-6">
-                Already have an account? <Link to="/login" className="text-primary font-medium">Log in</Link>
+                Already have an account? <Link to="/auth?tab=login" className="text-primary font-medium">Log in</Link>
               </div>
             </div>
           </motion.div>
