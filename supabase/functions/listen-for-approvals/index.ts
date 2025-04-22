@@ -5,30 +5,49 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 const supabaseUrl = "https://wkautvkfdldsnnclucto.supabase.co";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 // Run this function every hour (in production you'd use a cron job or scheduled task)
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
   try {
     console.log("Running the venue owner approval check function");
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Find venue owners with verification_status = 'approved' who haven't been notified yet
-    // We can add a 'notified_at' column later to track this properly
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name')
+      .select('id, email, full_name, gstin, pan')
       .eq('user_type', 'venue_owner')
       .eq('verification_status', 'approved')
-      .is('updated_at', null);  // This is just a placeholder - in production you'd track notification status
+      .is('updated_at', null);  // This is a placeholder - in production you'd track notification status
 
     if (error) throw error;
 
     console.log(`Found ${data?.length || 0} approved venue owners to process`);
+    
+    if (!data || data.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "No new approved venue owners to process"
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Process any newly approved venue owners
     const emailPromises = data.map(async (profile) => {
       try {
-        console.log(`Sending approval email to ${profile.email}`);
+        console.log(`Sending approval email to ${profile.email} (${profile.id})`);
         
         // Call our email sending function
         const emailResponse = await fetch(
@@ -42,16 +61,22 @@ serve(async (req) => {
             body: JSON.stringify({
               id: profile.id,
               email: profile.email,
-              full_name: profile.full_name
+              full_name: profile.full_name,
+              gstin: profile.gstin,
+              pan: profile.pan
             }),
           }
         );
+        
+        if (!emailResponse.ok) {
+          const errorText = await emailResponse.text();
+          throw new Error(`Failed to send email: ${errorText}`);
+        }
         
         const result = await emailResponse.json();
         
         if (result.success) {
           // Update the profile to indicate notification was sent
-          // In production, you'd add a 'notified_at' timestamp column
           await supabase
             .from('profiles')
             .update({ updated_at: new Date().toISOString() })
@@ -63,7 +88,7 @@ serve(async (req) => {
         }
       } catch (error) {
         console.error(`Error processing venue owner ${profile.id}:`, error);
-        return { success: false, id: profile.id, error };
+        return { success: false, id: profile.id, error: error.message };
       }
     });
     
@@ -75,7 +100,7 @@ serve(async (req) => {
         processed: results.length,
         results
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error("Error in listen-for-approvals function:", error);
@@ -85,7 +110,7 @@ serve(async (req) => {
         error: error.message
       }),
       { 
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     );

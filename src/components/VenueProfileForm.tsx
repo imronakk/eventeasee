@@ -25,6 +25,8 @@ const formSchema = z.object({
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
   amenities: z.string().optional(),
   images: z.string().optional(),
+  gstin: z.string().optional(),
+  pan: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -34,6 +36,7 @@ export default function VenueProfileForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [venueProfile, setVenueProfile] = useState<any>(null);
+  const [profileDetails, setProfileDetails] = useState<any>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,34 +47,56 @@ export default function VenueProfileForm() {
       capacity: 0,
       amenities: '',
       images: '',
+      gstin: '',
+      pan: '',
     },
   });
 
   useEffect(() => {
     if (!user) return;
 
-    async function loadVenueProfile() {
+    async function loadData() {
       try {
-        const { data, error } = await supabase
+        // First load the user profile to get GSTIN and PAN
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('gstin, pan')
+          .eq('id', user.id)
+          .single();
+          
+        if (profileError) {
+          throw profileError;
+        }
+        
+        setProfileDetails(profileData);
+        
+        // Then load the venue profile
+        const { data: venueData, error: venueError } = await supabase
           .from('venues')
           .select('*')
           .eq('owner_id', user.id)
           .maybeSingle();
           
-        if (error && error.code !== 'PGRST116') {
-          throw error;
+        if (venueError && venueError.code !== 'PGRST116') {
+          throw venueError;
         }
 
-        if (data) {
-          setVenueProfile(data);
+        if (venueData) {
+          setVenueProfile(venueData);
           form.reset({
-            name: data.name || '',
-            description: data.description || '',
-            address: data.address || '',
-            capacity: data.capacity || 0,
-            amenities: data.amenities ? data.amenities.join(', ') : '',
-            images: data.images ? data.images.join(', ') : '',
+            name: venueData.name || '',
+            description: venueData.description || '',
+            address: venueData.address || '',
+            capacity: venueData.capacity || 0,
+            amenities: venueData.amenities ? venueData.amenities.join(', ') : '',
+            images: venueData.images ? venueData.images.join(', ') : '',
+            gstin: profileData?.gstin || '',
+            pan: profileData?.pan || '',
           });
+        } else {
+          // Just set GSTIN and PAN if venue profile doesn't exist yet
+          form.setValue('gstin', profileData?.gstin || '');
+          form.setValue('pan', profileData?.pan || '');
         }
       } catch (error: any) {
         console.error('Error loading venue profile:', error);
@@ -83,7 +108,7 @@ export default function VenueProfileForm() {
       }
     }
 
-    loadVenueProfile();
+    loadData();
   }, [user, form, toast]);
 
   const onSubmit = async (values: FormValues) => {
@@ -98,31 +123,20 @@ export default function VenueProfileForm() {
     
     setLoading(true);
     try {
-      // First, make sure the profile exists in the profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (!profileData) {
-        // If profile doesn't exist, create one
-        const { error: insertProfileError } = await supabase
+      // First, update GSTIN and PAN in the profiles table
+      if (values.gstin !== profileDetails?.gstin || values.pan !== profileDetails?.pan) {
+        const { error: profileUpdateError } = await supabase
           .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email || '',
-            full_name: user.name || '',
-            user_type: user.role
-          });
-
-        if (insertProfileError) throw insertProfileError;
+          .update({
+            gstin: values.gstin,
+            pan: values.pan,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+          
+        if (profileUpdateError) throw profileUpdateError;
       }
-
+      
       // Process the amenities and images from comma-separated string to array
       const amenitiesArray = values.amenities 
         ? values.amenities.split(',').map(item => item.trim()).filter(Boolean)
@@ -202,6 +216,39 @@ export default function VenueProfileForm() {
       <h2 className="text-xl font-semibold mb-6">Venue Profile</h2>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="bg-muted/50 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium mb-4">Business Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="gstin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GSTIN</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter GSTIN" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PAN</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter PAN" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
           <FormField
             control={form.control}
             name="name"

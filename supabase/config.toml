@@ -39,4 +39,4 @@ enable_confirmations = false
 verify_jwt = false
 
 [functions.listen-for-approvals]
-verify_jwt = true
+verify_jwt = false

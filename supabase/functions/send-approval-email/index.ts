@@ -18,7 +18,7 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { email, full_name, id } = await req.json();
+    const { email, full_name, id, gstin, pan } = await req.json();
 
     if (!email) {
       throw new Error("Email is required");
@@ -26,11 +26,25 @@ serve(async (req) => {
 
     // Log the email sending request for debugging
     console.log(`Sending approval email to ${email} for venue owner ${full_name} (${id})`);
+    console.log(`GSTIN: ${gstin}, PAN: ${pan}`);
 
     // In a production environment, you would integrate with an email service
     // For example, using Resend, SendGrid, or another email provider
     
     // For now, we're simulating a successful email send
+    // This is where you would add the actual email sending logic
+    
+    // Update the profile to indicate the email was sent
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', id);
+      
+    if (updateError) {
+      console.error("Error updating profile:", updateError);
+      throw updateError;
+    }
+    
     return new Response(
       JSON.stringify({
         success: true,

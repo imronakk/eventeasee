@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Lock, User, ArrowRight, FileText } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, FileText, Building, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import MainLayout from '@/layouts/MainLayout';
 import { UserRole } from '@/types';
@@ -334,11 +335,12 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="gstin">GSTIN</Label>
                       <div className="relative">
+                        <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="gstin"
                           type="text"
                           placeholder="GSTIN Number"
-                          className="pl-3"
+                          className="pl-10"
                           value={gstin}
                           onChange={(e) => setGstin(e.target.value)}
                           required
@@ -349,11 +351,12 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="pan">PAN</Label>
                       <div className="relative">
+                        <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="pan"
                           type="text"
                           placeholder="PAN Number"
-                          className="pl-3"
+                          className="pl-10"
                           value={pan}
                           onChange={(e) => setPan(e.target.value)}
                           required
