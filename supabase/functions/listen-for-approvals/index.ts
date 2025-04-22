@@ -2,31 +2,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 const supabaseUrl = "https://wkautvkfdldsnnclucto.supabase.co";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
+// Run this function every hour (in production you'd use a cron job or scheduled task)
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
+    console.log("Running the venue owner approval check function");
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Poll for venue owners that were just approved
+    // Find venue owners with verification_status = 'approved' who haven't been notified yet
+    // We can add a 'notified_at' column later to track this properly
     const { data, error } = await supabase
-      .from("profiles")
-      .select("id, email, full_name")
-      .eq("user_type", "venue_owner")
-      .eq("verification_status", "approved")
-      .order("updated_at", { ascending: false })
-      .limit(10);
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('user_type', 'venue_owner')
+      .eq('verification_status', 'approved')
+      .is('updated_at', null);  // This is just a placeholder - in production you'd track notification status
 
     if (error) throw error;
 
@@ -41,53 +34,59 @@ serve(async (req) => {
         const emailResponse = await fetch(
           `${supabaseUrl}/functions/v1/send-approval-email`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`
             },
             body: JSON.stringify({
-              email: profile.email,
-              full_name: profile.full_name,
               id: profile.id,
+              email: profile.email,
+              full_name: profile.full_name
             }),
           }
         );
-
-        if (!emailResponse.ok) {
-          const errorText = await emailResponse.text();
-          throw new Error(`Failed to send email: ${errorText}`);
+        
+        const result = await emailResponse.json();
+        
+        if (result.success) {
+          // Update the profile to indicate notification was sent
+          // In production, you'd add a 'notified_at' timestamp column
+          await supabase
+            .from('profiles')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', profile.id);
+            
+          return { success: true, id: profile.id };
+        } else {
+          throw new Error(result.error || 'Email sending failed');
         }
-
-        return { id: profile.id, success: true };
-      } catch (emailError) {
-        console.error(`Error sending email to ${profile.email}:`, emailError);
-        return { id: profile.id, success: false, error: emailError.message };
+      } catch (error) {
+        console.error(`Error processing venue owner ${profile.id}:`, error);
+        return { success: false, id: profile.id, error };
       }
     });
-
+    
     const results = await Promise.all(emailPromises);
-
+    
     return new Response(
       JSON.stringify({
         success: true,
-        processed: results,
+        processed: results.length,
+        results
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("Error processing venue owner approvals:", error);
+    console.error("Error in listen-for-approvals function:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error.message
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+      { 
+        headers: { 'Content-Type': 'application/json' },
+        status: 500
       }
     );
   }
