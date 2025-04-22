@@ -129,6 +129,29 @@ const Auth = () => {
       if (error) throw error;
 
       const userRole = data.user?.user_metadata?.user_type as UserRole;
+      
+      if (userRole === 'venue_owner') {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('verification_status')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) throw profileError;
+        
+        if (profileData.verification_status === 'pending') {
+          toast({
+            title: 'Account pending verification',
+            description: 'Your account is still pending approval. You will be notified via email once approved.',
+          });
+          
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          setPendingVerification(true);
+          return;
+        }
+      }
+      
       redirectToDashboard(userRole);
     } catch (error: any) {
       toast({

@@ -1,1 +1,8 @@
+
 project_id = "wkautvkfdldsnnclucto"
+
+[functions.send-approval-email]
+verify_jwt = true
+
+[functions.listen-for-approvals]
+verify_jwt = true
