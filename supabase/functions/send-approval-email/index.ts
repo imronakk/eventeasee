@@ -24,12 +24,13 @@ serve(async (req) => {
       throw new Error("Email is required");
     }
 
-    // Simple email content - in production, you would use a proper email service like SendGrid or Resend
+    // Log the email sending request for debugging
     console.log(`Sending approval email to ${email} for venue owner ${full_name} (${id})`);
 
-    // Here you would integrate with an email service like SendGrid or Resend
-    // For now, we're just logging the email content
-
+    // In a production environment, you would integrate with an email service
+    // For example, using Resend, SendGrid, or another email provider
+    
+    // For now, we're simulating a successful email send
     return new Response(
       JSON.stringify({
         success: true,

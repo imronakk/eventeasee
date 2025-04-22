@@ -30,9 +30,13 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    console.log(`Found ${data?.length || 0} approved venue owners to process`);
+
     // Process any newly approved venue owners
     const emailPromises = data.map(async (profile) => {
       try {
+        console.log(`Sending approval email to ${profile.email}`);
+        
         // Call our email sending function
         const emailResponse = await fetch(
           `${supabaseUrl}/functions/v1/send-approval-email`,

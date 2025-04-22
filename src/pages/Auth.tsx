@@ -31,9 +31,13 @@ const Auth = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        redirectToDashboard(data.session.user.user_metadata.user_type as UserRole);
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          redirectToDashboard(data.session.user.user_metadata.user_type as UserRole);
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
       }
     };
 
@@ -90,6 +94,8 @@ const Auth = () => {
 
       if (selectedRole === 'venue_owner') {
         setPendingVerification(true);
+        // For venue owners, we'll sign them out since they need verification
+        await supabase.auth.signOut();
       } else {
         if (data.user) {
           toast({
@@ -131,24 +137,30 @@ const Auth = () => {
       const userRole = data.user?.user_metadata?.user_type as UserRole;
       
       if (userRole === 'venue_owner') {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('verification_status')
-          .eq('id', data.user.id)
-          .single();
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('verification_status')
+            .eq('id', data.user.id)
+            .maybeSingle();
+            
+          if (profileError) throw profileError;
           
-        if (profileError) throw profileError;
-        
-        if (profileData.verification_status === 'pending') {
-          toast({
-            title: 'Account pending verification',
-            description: 'Your account is still pending approval. You will be notified via email once approved.',
-          });
-          
-          await supabase.auth.signOut();
-          setIsLoading(false);
-          setPendingVerification(true);
-          return;
+          if (profileData?.verification_status === 'pending') {
+            toast({
+              title: 'Account pending verification',
+              description: 'Your account is still pending approval. You will be notified via email once approved.',
+            });
+            
+            await supabase.auth.signOut();
+            setIsLoading(false);
+            setPendingVerification(true);
+            return;
+          }
+        } catch (profileError: any) {
+          console.error("Error checking verification status:", profileError);
+          // If we fail to get the profile status, we'll let them in rather than blocking
+          // This is a fail-open approach that can be changed based on security requirements
         }
       }
       
@@ -177,7 +189,7 @@ const Auth = () => {
             <FileText className="mx-auto mb-4 h-12 w-12 text-primary" />
             <h2 className="text-2xl font-bold mb-4">Registration Pending Verification</h2>
             <p className="text-muted-foreground mb-6">
-              Your details will be verified soon, and you will be contacted through your email.
+              Your venue owner account is pending verification. Your details will be reviewed soon, and you will be contacted through your email.
             </p>
             <Button 
               onClick={() => {
