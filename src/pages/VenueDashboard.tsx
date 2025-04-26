@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ChatInterface from '@/components/ChatInterface';
+import CreateEventDialog from '@/components/CreateEventDialog';
 
 const VenueDashboard = () => {
   const { user } = useAuth();
@@ -25,12 +26,13 @@ const VenueDashboard = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
   const [artists, setArtists] = useState<any[]>([]);
   const [artistsLoading, setArtistsLoading] = useState(false);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [artistToRequest, setArtistToRequest] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState('');
+  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
+  const [selectedArtist, setSelectedArtist] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -310,6 +312,11 @@ const VenueDashboard = () => {
     }
   };
 
+  const handleCreateEvent = (request: any) => {
+    setSelectedArtist(request.artists);
+    setCreateEventDialogOpen(true);
+  };
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const tabParam = searchParams.get('tab');
@@ -506,14 +513,24 @@ const VenueDashboard = () => {
                                 </Button>
                               </>
                             ) : status === 'accepted' ? (
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                onClick={() => handleOpenChat(request)}
-                                className="flex items-center gap-1"
-                              >
-                                <MessageSquare className="h-4 w-4" /> Chat with Artist
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => handleCreateEvent(request)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <CalendarIcon className="h-4 w-4" /> Create Event
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleOpenChat(request)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <MessageSquare className="h-4 w-4" /> Chat with Artist
+                                </Button>
+                              </div>
                             ) : (
                               <Badge variant="outline">No actions available</Badge>
                             )}
@@ -689,6 +706,15 @@ const VenueDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedArtist && venues.length > 0 && (
+        <CreateEventDialog
+          open={createEventDialogOpen}
+          onOpenChange={setCreateEventDialogOpen}
+          artist={selectedArtist}
+          venue={venues[0]}
+        />
+      )}
     </div>
   );
 };
