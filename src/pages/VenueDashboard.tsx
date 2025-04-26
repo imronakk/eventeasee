@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ChatInterface from '@/components/ChatInterface';
 import CreateEventDialog from '@/components/CreateEventDialog';
 import EventCard from '@/components/EventCard';
+import UpdateEventDialog from '@/components/UpdateEventDialog';
 
 const VenueDashboard = () => {
   const { user } = useAuth();
@@ -35,6 +36,8 @@ const VenueDashboard = () => {
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [updateEventDialogOpen, setUpdateEventDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -320,8 +323,6 @@ const VenueDashboard = () => {
   };
 
   const fetchEvents = async () => {
-    if (!venues.length) return;
-    
     try {
       const { data, error } = await supabase
         .from('events')
@@ -331,6 +332,9 @@ const VenueDashboard = () => {
             profile:profiles (
               full_name
             )
+          ),
+          venue:venues (
+            name
           )
         `)
         .in('venue_id', venues.map(venue => venue.id));
@@ -344,6 +348,17 @@ const VenueDashboard = () => {
         description: error.message,
       });
     }
+  };
+
+  useEffect(() => {
+    if (venues.length > 0) {
+      fetchEvents();
+    }
+  }, [venues]);
+
+  const handleUpdateEvent = (event: any) => {
+    setSelectedEvent(event);
+    setUpdateEventDialogOpen(true);
   };
 
   useEffect(() => {
@@ -394,6 +409,10 @@ const VenueDashboard = () => {
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings2Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Events</span>
           </TabsTrigger>
         </TabsList>
 
@@ -647,7 +666,16 @@ const VenueDashboard = () => {
               {events.length > 0 ? (
                 <div className="grid gap-4">
                   {events.map((event) => (
-                    <EventCard key={event.id} event={event} />
+                    <div key={event.id} className="relative">
+                      <EventCard event={event} />
+                      <Button 
+                        className="absolute top-4 right-4" 
+                        variant="outline"
+                        onClick={() => handleUpdateEvent(event)}
+                      >
+                        Update Event
+                      </Button>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -767,6 +795,15 @@ const VenueDashboard = () => {
           onOpenChange={setCreateEventDialogOpen}
           artist={selectedArtist}
           venue={venues[0]}
+        />
+      )}
+
+      {selectedEvent && (
+        <UpdateEventDialog
+          open={updateEventDialogOpen}
+          onOpenChange={setUpdateEventDialogOpen}
+          event={selectedEvent}
+          onUpdate={fetchEvents}
         />
       )}
     </div>
