@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ChatInterface from '@/components/ChatInterface';
 import CreateEventDialog from '@/components/CreateEventDialog';
+import EventCard from '@/components/EventCard';
 
 const VenueDashboard = () => {
   const { user } = useAuth();

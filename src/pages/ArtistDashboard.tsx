@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import ChatInterface from '@/components/ChatInterface';
+import EventCard from '@/components/EventCard';
 
 const ArtistDashboard = () => {
   const { user } = useAuth();
