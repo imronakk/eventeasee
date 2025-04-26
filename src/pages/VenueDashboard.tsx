@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -522,6 +522,11 @@ const VenueDashboard = () => {
                 <div className="space-y-4">
                   {venueRequests.map((request) => {
                     const status = request.status?.toLowerCase() || 'pending';
+                    const hasEvent = events.some(event => 
+                      event.artist_id === request.artist_id && 
+                      event.venue_id === request.venue_id
+                    );
+
                     return (
                       <div key={request.id} className="p-4 border rounded-lg">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -566,9 +571,10 @@ const VenueDashboard = () => {
                                   variant="default" 
                                   size="sm"
                                   onClick={() => handleCreateEvent(request)}
+                                  disabled={hasEvent}
                                   className="flex items-center gap-1"
                                 >
-                                  <CalendarIcon className="h-4 w-4" /> Create Event
+                                  {hasEvent ? 'Event Created' : 'Create Event'}
                                 </Button>
                                 <Button 
                                   variant="outline" 
