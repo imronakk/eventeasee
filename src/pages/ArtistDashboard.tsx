@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +22,8 @@ const ArtistDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [requestDetailsOpen, setRequestDetailsOpen] = useState(false);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
 
-  // Mock data for artist dashboard
   const upcomingEvents = [
     { id: '1', name: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM' },
     { id: '2', name: 'Summer Festival', venue: 'Central Park', date: '2023-12-05', time: '4:00 PM' },
@@ -33,10 +32,10 @@ const ArtistDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchPerformanceRequests();
+      fetchEvents();
     }
   }, [user]);
 
-  // Subscribe to changes in show_requests (including DELETE to cover all cases)
   useEffect(() => {
     if (!user) return;
     
@@ -68,7 +67,6 @@ const ArtistDashboard = () => {
           fetchPerformanceRequests();
         }
       )
-      // Also handle deletion just in case venue cancels
       .on(
         'postgres_changes',
         {
@@ -116,7 +114,6 @@ const ArtistDashboard = () => {
       
       console.log('Raw requests data:', requests);
       
-      // Get venue owners' profiles
       const venueOwnerIds = requests?.map(req => req.venues?.owner_id).filter(Boolean) || [];
       
       const { data: ownerProfiles, error: profilesError } = await supabase
@@ -128,10 +125,8 @@ const ArtistDashboard = () => {
       
       console.log('Owner profiles data:', ownerProfiles);
       
-      // Process the data
       const processedRequests = requests?.map(request => {
         const venueOwner = ownerProfiles?.find(profile => profile.id === request.venues?.owner_id);
-        // Normalize status to lowercase trimmed string for consistency
         const statusNormalized = request.status ? request.status.toLowerCase().trim() : 'pending';
         return {
           id: request.id,
@@ -163,6 +158,57 @@ const ArtistDashboard = () => {
     }
   };
 
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          venue:venues (
+            name
+          )
+        `)
+        .eq('artist_id', user.id)
+        .order('event_date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data || []);
+
+      const channel = supabase
+        .channel('artist-events')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'events',
+            filter: `artist_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('New event created:', payload);
+            toast({
+              title: "New Event Created",
+              description: `A new event "${payload.new.name}" has been created with you!`,
+            });
+            fetchEvents();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching events",
+        description: error.message,
+      });
+    }
+  };
+
   const handleCreateProfile = () => {
     navigate('/profile');
   };
@@ -177,7 +223,6 @@ const ArtistDashboard = () => {
     setChatDialogOpen(true);
   };
 
-  // Helper function to get badge color based on status
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'accepted':
@@ -272,29 +317,19 @@ const ArtistDashboard = () => {
         <TabsContent value="events" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Your Upcoming Events</CardTitle>
+              <CardTitle>Your Events</CardTitle>
               <CardDescription>Events you're scheduled to perform at</CardDescription>
             </CardHeader>
             <CardContent>
-              {upcomingEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{event.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {event.venue} • {event.date} • {event.time}
-                        </p>
-                      </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${event.id}`)}>
-                        View Details
-                      </Button>
-                    </div>
+              {events.length > 0 ? (
+                <div className="grid gap-4">
+                  {events.map((event) => (
+                    <EventCard key={event.id} event={event} />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No upcoming events scheduled</p>
+                  <p className="text-muted-foreground">No events scheduled yet</p>
                   <Button className="mt-4" onClick={() => navigate('/venues')}>
                     Find Venues
                   </Button>
@@ -402,7 +437,6 @@ const ArtistDashboard = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Request Details Dialog */}
       <AlertDialog open={requestDetailsOpen} onOpenChange={setRequestDetailsOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -461,7 +495,6 @@ const ArtistDashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Chat Dialog */}
       <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
         <AlertDialogContent className="sm:max-w-[600px]">
           <AlertDialogHeader>
@@ -489,4 +522,3 @@ const ArtistDashboard = () => {
 };
 
 export default ArtistDashboard;
-

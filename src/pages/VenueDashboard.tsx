@@ -33,6 +33,7 @@ const VenueDashboard = () => {
   const [requestMessage, setRequestMessage] = useState('');
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -315,6 +316,33 @@ const VenueDashboard = () => {
   const handleCreateEvent = (request: any) => {
     setSelectedArtist(request.artists);
     setCreateEventDialogOpen(true);
+  };
+
+  const fetchEvents = async () => {
+    if (!venues.length) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          artist:artists (
+            profile:profiles (
+              full_name
+            )
+          )
+        `)
+        .in('venue_id', venues.map(venue => venue.id));
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching events",
+        description: error.message,
+      });
+    }
   };
 
   useEffect(() => {
@@ -602,6 +630,31 @@ const VenueDashboard = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Events</CardTitle>
+              <CardDescription>Events scheduled at your venues</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {events.length > 0 ? (
+                <div className="grid gap-4">
+                  {events.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No events scheduled yet</p>
+                  <Button className="mt-4" onClick={() => setActiveTab("requests")}>
+                    View Requests to Create Event
+                  </Button>
                 </div>
               )}
             </CardContent>
