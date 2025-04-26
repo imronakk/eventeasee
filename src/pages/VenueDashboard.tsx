@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -389,7 +390,7 @@ const VenueDashboard = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-5 md:w-[750px] mb-8">
+        <TabsList className="grid grid-cols-6 md:w-[750px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -406,13 +407,13 @@ const VenueDashboard = () => {
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Artists</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings2Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
           <TabsTrigger value="events" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings2Icon className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
