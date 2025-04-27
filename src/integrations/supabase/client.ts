@@ -16,7 +16,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true, // Automatically refresh tokens
     },
     global: {
-      fetch: (...args) => fetch(...args) // Properly spread the args to fix TypeScript error
+      fetch: (url, options) => fetch(url, options) // Fix TypeScript error with properly typed parameters
     }
   }
 );
