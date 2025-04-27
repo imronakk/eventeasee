@@ -14,6 +14,9 @@ export const supabase = createClient<Database>(
       persistSession: true, // Ensure sessions persist across page reloads
       storageKey: 'musicapp-auth-storage', // Use a custom key for storage
       autoRefreshToken: true, // Automatically refresh tokens
+    },
+    global: {
+      fetch: (...args) => fetch(...args) // Ensure proper fetch behavior
     }
   }
 );
