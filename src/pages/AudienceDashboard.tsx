@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,19 +164,19 @@ const AudienceDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-8">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Upcoming Events</CardTitle>
-                <CardDescription>You have tickets to {upcomingTickets.length} upcoming events</CardDescription>
+                <CardDescription>Discover amazing performances near you</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{upcomingTickets.length}</div>
+                <div className="text-2xl font-bold">{events.length}</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("tickets")}>
-                  View my tickets
+                <Button variant="outline" className="w-full" onClick={() => navigate('/events')}>
+                  Browse Events
                 </Button>
               </CardFooter>
             </Card>
@@ -198,37 +197,7 @@ const AudienceDashboard = () => {
             </Card>
           </div>
 
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Book Tickets for Upcoming Events</h2>
-            <div className="space-y-4">
-              {loadingEvents ? (
-                <div className="text-center text-muted-foreground py-8">Loading events...</div>
-              ) : events.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">No upcoming events available.</div>
-              ) : (
-                events.map((event) => (
-                  <Card key={event.id}>
-                    <CardHeader>
-                      <CardTitle>{event.title}</CardTitle>
-                      <CardDescription>{event.venue}</CardDescription>
-                      <CardDescription>{event.date} {event.time}</CardDescription>
-                      <CardDescription>Price: ${event.ticketPrice}</CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                      <Button
-                        onClick={() => navigate(`/events/${event.id}/book`)}
-                        variant="default"
-                        className="w-full flex items-center justify-center gap-2"
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        Book Tickets
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
-          </section>
+          <UpcomingEvents />
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-4">
@@ -337,4 +306,3 @@ const AudienceDashboard = () => {
 };
 
 export default AudienceDashboard;
-
