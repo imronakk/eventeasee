@@ -287,7 +287,8 @@ const VenueDashboard = () => {
       console.log(`Attempting to ${actionType} request with ID:`, selectedRequest.id);
       const newStatus = actionType === 'accept' ? 'accepted' : 'rejected';
       
-      // Update the request status in the database
+      // Update the request status in the database with improved logging
+      console.log(`Updating request ${selectedRequest.id} to status: ${newStatus}`);
       const { data, error } = await supabase
         .from('show_requests')
         .update({ status: newStatus })
@@ -299,7 +300,7 @@ const VenueDashboard = () => {
         throw error;
       }
 
-      console.log('Update successful:', data);
+      console.log('Update successful, response data:', data);
       
       // Update local state to reflect the change
       setVenueRequests(prevRequests =>
@@ -313,7 +314,8 @@ const VenueDashboard = () => {
         description: `The performance request has been ${actionType === 'accept' ? 'accepted' : 'declined'}.`,
       });
 
-      await fetchRequests(); // Refresh the requests data
+      // Refresh the requests data to ensure UI is in sync with database
+      await fetchRequests();
     } catch (error: any) {
       console.error('Action failed:', error);
       toast({
