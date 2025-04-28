@@ -7,6 +7,7 @@ import { TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import UpcomingEvents from '@/components/UpcomingEvents';
 
 interface Artist {
   id: string;
