@@ -55,15 +55,16 @@ const BookTicket = ({ eventId, eventName, tickets }: BookTicketProps) => {
     try {
       const totalPrice = selectedTicketInfo.price * quantity;
       
-      // 1. Create booking record
+      // 1. Create booking record - fixed field names to match our database schema
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           user_id: user.id,
           ticket_id: selectedTicket,
           event_id: eventId,
-          quantity,
-          total_price: totalPrice,
+          quantity: quantity,
+          total_price: totalPrice, // Make sure this matches the DB column name
+          status: 'confirmed'
         })
         .select();
 

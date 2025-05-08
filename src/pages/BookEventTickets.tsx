@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { ArrowLeft, Calendar, MapPin } from 'lucide-react';
 import { formatDate } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import BookTicket from '@/components/BookTicket';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const BookEventTickets = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -106,9 +105,9 @@ const BookEventTickets = () => {
           asChild 
           className="mb-6"
         >
-          <Link to={`/events/${eventId}`}>
+          <Link to="/events">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Event Details
+            Back to Events
           </Link>
         </Button>
 

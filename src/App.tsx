@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
@@ -21,7 +21,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<MainLayout />}>
+          <Route path="/" element={<MainLayout><Outlet /></MainLayout>}>
             <Route index element={<Index />} />
             <Route path="auth" element={<Auth />} />
             <Route path="artists" element={<Artists />} />

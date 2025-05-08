@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,13 +11,60 @@ interface VenueBookingsProps {
   venueId?: string; // Optional: Can show bookings for a specific venue
 }
 
+// Define types to avoid the excessive type instantiation error
+interface Venue {
+  id: string;
+  name: string;
+}
+
+interface Event {
+  id: string;
+  name: string;
+  event_date: string;
+  venue_id: string;
+  venue?: {
+    name: string;
+  };
+}
+
+interface Booking {
+  id: string;
+  quantity: number;
+  total_price: number;
+  ticket_id: string;
+  user: {
+    full_name: string;
+    email: string;
+  };
+}
+
+interface Ticket {
+  id: string;
+  ticket_type: string;
+  price: number;
+  quantity_total: number;
+  quantity_remaining: number;
+  bookings?: Booking[];
+  totalBooked?: number;
+  percentageBooked?: number;
+}
+
+interface BookingStats {
+  tickets: Ticket[];
+  bookings: Booking[];
+  totalCapacity: number;
+  totalBooked: number;
+  percentageBooked: number;
+  totalRevenue: number;
+}
+
 const VenueBookings = ({ venueId }: VenueBookingsProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
-  const [venueEvents, setVenueEvents] = useState<Record<string, any[]>>({});
+  const [venueEvents, setVenueEvents] = useState<Record<string, Event[]>>({});
 
   // Fetch venue owner's events
   useEffect(() => {
@@ -63,7 +109,7 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
         if (eventsError) throw eventsError;
 
         // Group events by venue
-        const eventsByVenue: Record<string, any[]> = {};
+        const eventsByVenue: Record<string, Event[]> = {};
         eventsData.forEach((event: any) => {
           const vId = event.venue_id;
           if (!eventsByVenue[vId]) {
@@ -96,7 +142,7 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
 
   // Component to show booking stats for a specific event
   const EventBookingStats = ({ eventId }: { eventId: string }) => {
-    const [bookingStats, setBookingStats] = useState<any>(null);
+    const [bookingStats, setBookingStats] = useState<BookingStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
 
     useEffect(() => {
