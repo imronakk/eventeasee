@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
+import { TicketIcon, BarChart3Icon, Settings2Icon, StarIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +33,8 @@ const AudienceDashboard = () => {
   const [loadingArtists, setLoadingArtists] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [userTickets, setUserTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const upcomingTickets = [
     { id: '1', eventName: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', quantity: 2 },
@@ -133,6 +135,54 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
+  useEffect(() => {
+    const fetchUserTickets = async () => {
+      if (!user || activeTab !== 'tickets') return;
+      
+      setLoadingTickets(true);
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            id,
+            quantity,
+            total_price,
+            booking_date,
+            status,
+            ticket:tickets (
+              ticket_type,
+              price
+            ),
+            event:events (
+              id,
+              name,
+              event_date,
+              venue:venues (
+                name
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('booking_date', { ascending: false });
+
+        if (error) throw error;
+        
+        setUserTickets(data || []);
+      } catch (error: any) {
+        console.error('Error fetching user tickets:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching tickets",
+          description: error.message || "Could not load your tickets",
+        });
+      } finally {
+        setLoadingTickets(false);
+      }
+    };
+
+    fetchUserTickets();
+  }, [activeTab, user, toast]);
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -184,6 +234,21 @@ const AudienceDashboard = () => {
 
             <Card>
               <CardHeader className="pb-2">
+                <CardTitle>My Tickets</CardTitle>
+                <CardDescription>View your upcoming tickets</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userTickets.length}</div>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full" onClick={() => navigate('/tickets')}>
+                  View Tickets
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
                 <CardTitle>Recommended Events</CardTitle>
                 <CardDescription>Based on your preferences</CardDescription>
               </CardHeader>
@@ -192,7 +257,7 @@ const AudienceDashboard = () => {
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => navigate('/events')}>
-                  Browse events
+                  Browse Events
                 </Button>
               </CardFooter>
             </Card>
@@ -208,18 +273,26 @@ const AudienceDashboard = () => {
               <CardDescription>Events you're attending</CardDescription>
             </CardHeader>
             <CardContent>
-              {upcomingTickets.length > 0 ? (
+              {loadingTickets ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-pulse flex space-x-2">
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  </div>
+                </div>
+              ) : userTickets.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingTickets.map((ticket) => (
+                  {userTickets.map((ticket: any) => (
                     <div key={ticket.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
                       <div>
-                        <h3 className="font-medium">{ticket.eventName}</h3>
+                        <h3 className="font-medium">{ticket.event.name}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {ticket.venue} • {ticket.date} • {ticket.time}
+                          {ticket.event.venue?.name || 'Venue TBA'} • {new Date(ticket.event.event_date).toLocaleDateString()}
                         </p>
-                        <p className="text-sm">Tickets: {ticket.quantity}</p>
+                        <p className="text-sm">Tickets: {ticket.quantity} ({ticket.ticket.ticket_type})</p>
                       </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.id}`)}>
+                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.event.id}`)}>
                         View Event
                       </Button>
                     </div>
@@ -235,8 +308,8 @@ const AudienceDashboard = () => {
               )}
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/events')}>
-                Find More Events
+              <Button className="w-full" onClick={() => navigate('/tickets')}>
+                View All Tickets
               </Button>
             </CardFooter>
           </Card>
