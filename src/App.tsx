@@ -29,9 +29,12 @@ function App() {
             <Route path="events" element={<Events />} />
             <Route path="events/:eventId/book" element={<BookEventTickets />} />
             <Route path="tickets" element={<UserTickets />} />
-            <Route path="dashboard/artist" element={<ArtistDashboard />} />
-            <Route path="dashboard/venue" element={<VenueDashboard />} />
-            <Route path="dashboard/audience" element={<AudienceDashboard />} />
+            
+            {/* Update dashboard routes to match Navbar paths */}
+            <Route path="artist-dashboard" element={<ArtistDashboard />} />
+            <Route path="venue-dashboard" element={<VenueDashboard />} />
+            <Route path="audience-dashboard" element={<AudienceDashboard />} />
+            
             <Route path="profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
           </Route>
