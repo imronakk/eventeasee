@@ -61,9 +61,8 @@ const BookTicket = ({ eventId, eventName, tickets }: BookTicketProps) => {
         .insert({
           user_id: user.id,
           ticket_id: selectedTicket,
-          event_id: eventId,
           quantity: quantity,
-          total_price: totalPrice, // Make sure this matches the DB column name
+          total_amount: totalPrice, // Using total_amount instead of total_price
           status: 'confirmed'
         })
         .select();

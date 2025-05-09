@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,15 +28,17 @@ interface Event {
   };
 }
 
+interface BookingUser {
+  full_name: string;
+  email: string;
+}
+
 interface Booking {
   id: string;
   quantity: number;
-  total_price: number;
+  total_amount: number; // Changed from total_price to total_amount
   ticket_id: string;
-  user: {
-    full_name: string;
-    email: string;
-  };
+  user: BookingUser;
 }
 
 interface Ticket {
@@ -138,7 +141,7 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
     };
 
     fetchVenueEvents();
-  }, [user, toast, venueId]);
+  }, [user, toast, venueId, selectedEvent]);
 
   // Component to show booking stats for a specific event
   const EventBookingStats = ({ eventId }: { eventId: string }) => {
@@ -157,20 +160,20 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
 
           if (ticketsError) throw ticketsError;
 
-          // Get bookings for this event
+          // Get bookings for this event with corrected field names
           const { data: bookings, error: bookingsError } = await supabase
             .from('bookings')
             .select(`
               id,
               quantity,
-              total_price,
+              total_amount, 
               ticket_id,
               user:profiles!bookings_user_id_fkey (
                 full_name,
                 email
               )
             `)
-            .eq('event_id', eventId);
+            .eq('ticket_id', tickets.map((t: any) => t.id));
 
           if (bookingsError) throw bookingsError;
 
@@ -190,7 +193,7 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
           // Overall stats
           const totalCapacity = tickets.reduce((sum: number, t: any) => sum + t.quantity_total, 0);
           const totalBooked = bookings.reduce((sum: number, b: any) => sum + b.quantity, 0);
-          const totalRevenue = bookings.reduce((sum: number, b: any) => sum + parseFloat(b.total_price), 0);
+          const totalRevenue = bookings.reduce((sum: number, b: any) => sum + parseFloat(b.total_amount), 0);
 
           setBookingStats({
             tickets: ticketStats,
@@ -319,7 +322,7 @@ const VenueBookings = ({ venueId }: VenueBookingsProps) => {
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{booking.quantity} tickets</div>
-                      <div className="text-sm text-muted-foreground">${parseFloat(booking.total_price).toFixed(2)}</div>
+                      <div className="text-sm text-muted-foreground">${parseFloat(booking.total_amount).toFixed(2)}</div>
                     </div>
                   </div>
                 ))}
