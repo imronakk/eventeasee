@@ -33,7 +33,7 @@ interface BookingUser {
 interface Booking {
   id: string;
   quantity: number;
-  total_amount: number; // Changed from total_price to total_amount
+  total_amount: number;
   ticket_id: string;
   user: BookingUser;
 }
@@ -126,10 +126,18 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
           return;
         }
         
+        // Transform the events data to include the VenueEvent properties
+        const transformedEvents: VenueEvent[] = (events || []).map(event => ({
+          ...event,
+          total_capacity: 0, // We'll calculate these in the EventBookingStats component
+          booked: 0,
+          revenue: 0
+        }));
+        
         // Set events and select the first one by default
-        setVenueEvents(events || []);
-        if (events && events.length > 0) {
-          setSelectedEvent(events[0].id);
+        setVenueEvents(transformedEvents);
+        if (transformedEvents.length > 0) {
+          setSelectedEvent(transformedEvents[0].id);
         }
       } catch (error: any) {
         console.error("Error:", error);
@@ -144,7 +152,7 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
     };
 
     fetchVenueEvents();
-  }, [user, toast, venueId, selectedEvent]);
+  }, [user, toast, venueId]);
 
   // Component to show booking stats for a specific event
   const EventBookingStats = ({ eventId }: { eventId: string }) => {
@@ -173,14 +181,20 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
                 full_name,
                 email
               )
-            `)
-            .in('ticket_id', tickets.map((t: any) => t.id));
-
+            `);
+            
+          // Use .in() to filter by multiple ticket IDs
+          let filteredBookings = bookings;
+          if (tickets && tickets.length > 0) {
+            const ticketIds = tickets.map((t: any) => t.id);
+            filteredBookings = bookings.filter((b: any) => ticketIds.includes(b.ticket_id));
+          }
+            
           if (bookingsError) throw bookingsError;
 
           // Calculate stats for each ticket type
           const ticketStats = tickets.map((ticket: any) => {
-            const ticketBookings = bookings.filter((b: any) => b.ticket_id === ticket.id);
+            const ticketBookings = filteredBookings.filter((b: any) => b.ticket_id === ticket.id);
             const quantityBooked = ticketBookings.reduce((sum: number, b: any) => sum + b.quantity, 0);
             const revenue = ticketBookings.reduce((sum: number, b: any) => sum + parseFloat(b.total_amount), 0);
             
@@ -196,15 +210,15 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
           
           // Overall stats
           const totalCapacity = tickets.reduce((sum: number, t: any) => sum + t.quantity_total, 0);
-          const totalBooked = bookings.reduce((sum: number, b: any) => sum + b.quantity, 0);
-          const totalRevenue = bookings.reduce((sum: number, b: any) => sum + parseFloat(b.total_amount), 0);
+          const totalBooked = filteredBookings.reduce((sum: number, b: any) => sum + b.quantity, 0);
+          const totalRevenue = filteredBookings.reduce((sum: number, b: any) => sum + parseFloat(b.total_amount), 0);
 
           setBookingStats({
             tickets: ticketStats,
             totalCapacity,
             totalBooked,
             totalRevenue,
-            recentBookings: bookings.slice(0, 5)
+            recentBookings: filteredBookings.slice(0, 5)
           });
           
         } catch (error: any) {
