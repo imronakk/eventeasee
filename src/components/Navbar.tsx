@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -20,6 +20,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -75,8 +76,21 @@ const Navbar = () => {
   }, [location]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      await signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
+      navigate('/');
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: error.message || "Please try again later.",
+      });
+    }
   };
 
   const getInitials = (name: string) => {
@@ -275,4 +289,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
