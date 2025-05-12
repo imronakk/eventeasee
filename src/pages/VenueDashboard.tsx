@@ -39,7 +39,9 @@ const VenueDashboard = () => {
           <h1 className="text-3xl font-bold tracking-tight">Venue Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user?.name}</p>
         </div>
-        <Button as={Link} to="/events/create">Create New Event</Button>
+        <Button asChild>
+          <Link to="/events/create">Create New Event</Link>
+        </Button>
       </div>
 
       {/* Desktop Navigation Menu */}
@@ -262,7 +264,9 @@ const VenueDashboard = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button as={Link} to="/events/create" className="w-full">Create New Event</Button>
+              <Button asChild className="w-full">
+                <Link to="/events/create">Create New Event</Link>
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>

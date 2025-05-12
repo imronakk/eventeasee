@@ -108,7 +108,7 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
             id,
             name,
             event_date,
-            venue:venues!events_venue_id_fkey (
+            venue:venues (
               name
             )
           `)
@@ -169,7 +169,7 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
             
           if (ticketsError) throw ticketsError;
 
-          // Get bookings for this event with corrected field names
+          // Get bookings for this event
           const { data: bookings, error: bookingsError } = await supabase
             .from('bookings')
             .select(`
@@ -177,20 +177,20 @@ const VenueBookings = ({ venueId }: { venueId?: string }) => {
               quantity,
               total_amount, 
               ticket_id,
-              user:profiles!bookings_user_id_fkey (
+              user:profiles (
                 full_name,
                 email
               )
             `);
             
-          // Use .in() to filter by multiple ticket IDs
+          if (bookingsError) throw bookingsError;
+          
+          // Filter bookings for this event's tickets
           let filteredBookings = bookings;
           if (tickets && tickets.length > 0) {
             const ticketIds = tickets.map((t: any) => t.id);
             filteredBookings = bookings.filter((b: any) => ticketIds.includes(b.ticket_id));
           }
-            
-          if (bookingsError) throw bookingsError;
 
           // Calculate stats for each ticket type
           const ticketStats = tickets.map((ticket: any) => {
