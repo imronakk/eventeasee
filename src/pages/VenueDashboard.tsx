@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,17 @@ import { BarChart3Icon, CalendarIcon, Settings2Icon, TicketIcon, UsersIcon, Home
 import { useAuth } from '@/hooks/useAuth';
 import VenueBookings from '@/components/VenueBookings';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { format } from 'date-fns';
 
 // Import NavigationMenu components
 import {
@@ -28,9 +39,128 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 
+interface PerformanceRequest {
+  id: string;
+  artist_id: string;
+  proposed_date: string;
+  status: string;
+  message: string;
+  created_at: string;
+  artist: {
+    profiles: {
+      full_name: string;
+      email: string;
+    };
+  };
+}
+
 const VenueDashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
+  const [performanceRequests, setPerformanceRequests] = useState<PerformanceRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch performance requests when requests tab is selected
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (activeTab !== "requests" || !user) return;
+      
+      try {
+        setLoading(true);
+        
+        // First get venue ID for the logged in user
+        const { data: venueData, error: venueError } = await supabase
+          .from('venues')
+          .select('id')
+          .eq('owner_id', user.id)
+          .single();
+            
+        if (venueError) {
+          console.error("Error fetching venue:", venueError);
+          toast({
+            variant: "destructive",
+            title: "Error loading venue",
+            description: "Could not find your venue details. Please check your account.",
+          });
+          return;
+        }
+        
+        // Then get performance requests for this venue
+        const { data: requests, error: requestsError } = await supabase
+          .from('show_requests')
+          .select(`
+            id,
+            artist_id,
+            proposed_date,
+            status,
+            message,
+            created_at,
+            artist:artists (
+              profiles:profiles (
+                full_name,
+                email
+              )
+            )
+          `)
+          .eq('venue_id', venueData.id)
+          .order('created_at', { ascending: false });
+          
+        if (requestsError) {
+          console.error("Error fetching requests:", requestsError);
+          toast({
+            variant: "destructive",
+            title: "Error loading performance requests",
+            description: requestsError.message || "Could not load performance requests",
+          });
+          return;
+        }
+        
+        setPerformanceRequests(requests as PerformanceRequest[]);
+      } catch (error: any) {
+        console.error("Error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "An unexpected error occurred",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [activeTab, user, toast]);
+
+  // Function to handle request approval
+  const handleRequestAction = async (requestId: string, status: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('show_requests')
+        .update({ status })
+        .eq('id', requestId);
+        
+      if (error) throw error;
+      
+      // Update local state to reflect the change
+      setPerformanceRequests(prev => 
+        prev.map(request => 
+          request.id === requestId ? { ...request, status } : request
+        )
+      );
+      
+      toast({
+        title: `Request ${status}`,
+        description: `The performance request has been ${status}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update the request status.",
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
@@ -197,16 +327,9 @@ const VenueDashboard = () => {
               </CardFooter>
             </Card>
           </div>
-
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle>Recent Bookings</CardTitle>
-              <CardDescription>Latest ticket bookings for your venues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VenueBookings />
-            </CardContent>
-          </Card>
+          
+          {/* Removed Recent Bookings Card here */}
+          
         </TabsContent>
 
         <TabsContent value="venues">
@@ -233,9 +356,69 @@ const VenueDashboard = () => {
               <CardDescription>Manage artist performance requests</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-10 text-muted-foreground">
-                Request management features coming soon...
-              </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : performanceRequests.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Artist</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Proposed Date</TableHead>
+                      <TableHead>Message</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {performanceRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell className="font-medium">{request.artist?.profiles?.full_name || "Unknown Artist"}</TableCell>
+                        <TableCell>{request.artist?.profiles?.email || "No email provided"}</TableCell>
+                        <TableCell>{format(new Date(request.proposed_date), 'PPP')}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{request.message || "No message"}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            request.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                            request.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {request.status === 'pending' && (
+                            <div className="flex space-x-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleRequestAction(request.id, 'approved')}
+                              >
+                                Approve
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleRequestAction(request.id, 'rejected')}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          {request.status !== 'pending' && (
+                            <span className="text-muted-foreground">No actions available</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  No performance requests yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
