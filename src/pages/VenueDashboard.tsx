@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BarChart3Icon, CalendarIcon, Settings2Icon, TicketIcon, UsersIcon, HomeIcon, BuildingIcon } from 'lucide-react';
+import { BarChart3Icon, CalendarIcon, Settings2Icon, TicketIcon, UsersIcon, HomeIcon, BuildingIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import VenueBookings from '@/components/VenueBookings';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from 'date-fns';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import ChatInterface from '@/components/ChatInterface';
+import CreateEventDialog from '@/components/CreateEventDialog';
 
 // Import NavigationMenu components
 import {
@@ -50,6 +53,7 @@ interface PerformanceRequest {
     profiles: {
       full_name: string;
       email: string;
+      avatar_url?: string;
     };
   };
 }
@@ -60,6 +64,11 @@ const VenueDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [performanceRequests, setPerformanceRequests] = useState<PerformanceRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<PerformanceRequest | null>(null);
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [venueName, setVenueName] = useState<string | null>(null);
 
   // Fetch performance requests when requests tab is selected
   useEffect(() => {
@@ -72,7 +81,7 @@ const VenueDashboard = () => {
         // First get venue ID for the logged in user
         const { data: venueData, error: venueError } = await supabase
           .from('venues')
-          .select('id')
+          .select('id, name')
           .eq('owner_id', user.id)
           .single();
             
@@ -85,6 +94,9 @@ const VenueDashboard = () => {
           });
           return;
         }
+        
+        setVenueId(venueData.id);
+        setVenueName(venueData.name);
         
         // Then get performance requests for this venue
         const { data: requests, error: requestsError } = await supabase
@@ -99,7 +111,8 @@ const VenueDashboard = () => {
             artist:artists (
               profiles:profiles (
                 full_name,
-                email
+                email,
+                avatar_url
               )
             )
           `)
@@ -160,6 +173,18 @@ const VenueDashboard = () => {
         description: error.message || "Failed to update the request status.",
       });
     }
+  };
+
+  // Handle chat button click
+  const handleChatClick = (request: PerformanceRequest) => {
+    setSelectedRequest(request);
+    setChatOpen(true);
+  };
+
+  // Handle create event button click
+  const handleCreateEventClick = (request: PerformanceRequest) => {
+    setSelectedRequest(request);
+    setCreateEventOpen(true);
   };
 
   return (
@@ -327,9 +352,6 @@ const VenueDashboard = () => {
               </CardFooter>
             </Card>
           </div>
-          
-          {/* Removed Recent Bookings Card here */}
-          
         </TabsContent>
 
         <TabsContent value="venues">
@@ -406,7 +428,26 @@ const VenueDashboard = () => {
                               </Button>
                             </div>
                           )}
-                          {request.status !== 'pending' && (
+                          {request.status === 'approved' && (
+                            <div className="flex space-x-2">
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleChatClick(request)}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                Chat
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleCreateEventClick(request)}
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                Create Event
+                              </Button>
+                            </div>
+                          )}
+                          {request.status === 'rejected' && (
                             <span className="text-muted-foreground">No actions available</span>
                           )}
                         </TableCell>
@@ -468,6 +509,48 @@ const VenueDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Chat Dialog */}
+      <AlertDialog open={chatOpen} onOpenChange={setChatOpen}>
+        <AlertDialogContent className="sm:max-w-[600px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Chat with {selectedRequest?.artist?.profiles?.full_name}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          {selectedRequest && (
+            <div className="h-[500px]">
+              <ChatInterface 
+                requestId={selectedRequest.id}
+                otherUserId={selectedRequest.artist_id}
+                otherUserName={selectedRequest.artist?.profiles?.full_name || "Artist"}
+                otherUserAvatar={selectedRequest.artist?.profiles?.avatar_url}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Create Event Dialog */}
+      {selectedRequest && venueId && venueName && (
+        <CreateEventDialog
+          open={createEventOpen}
+          onOpenChange={setCreateEventOpen}
+          artist={{
+            id: selectedRequest.artist_id,
+            profile: {
+              full_name: selectedRequest.artist?.profiles?.full_name || "Artist"
+            }
+          }}
+          venue={{
+            id: venueId,
+            name: venueName
+          }}
+        />
+      )}
     </div>
   );
 };
