@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -52,44 +53,6 @@ const Venues = () => {
     setIsRequestOpen(true);
   };
 
-  // Function to ensure artist exists before submitting request
-  const ensureArtistExists = async (userId: string) => {
-    try {
-      // Check if artist record exists
-      const { data: existingArtist, error: checkError } = await supabase
-        .from('artists')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-      
-      // If artist doesn't exist, create one
-      if (!existingArtist) {
-        const { error: insertError } = await supabase
-          .from('artists')
-          .insert({
-            id: userId,
-            description: '', // Default empty values
-            experience: '',
-            genre: []
-          });
-        
-        if (insertError) throw insertError;
-        
-        console.log('Created artist record');
-        return true;
-      }
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error ensuring artist exists:', error);
-      return false;
-    }
-  };
-
   const handleRequestSubmit = async () => {
     if (!user || !selectedVenue || !requestDate) {
       toast({
@@ -103,13 +66,6 @@ const Venues = () => {
     setIsSubmitting(true);
     
     try {
-      // First ensure artist record exists
-      const artistExists = await ensureArtistExists(user.id);
-      
-      if (!artistExists) {
-        throw new Error("Could not create artist profile. Please complete your artist profile first.");
-      }
-      
       // Format the request data
       const requestData = {
         artist_id: user.id,
