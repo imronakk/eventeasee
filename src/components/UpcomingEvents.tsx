@@ -41,6 +41,35 @@ const UpcomingEvents = () => {
 
       if (error) throw error;
 
+      // Create tickets if they don't exist
+      for (const event of eventsData) {
+        // Check if tickets already exist for this event
+        const { data: existingTickets, error: ticketCheckError } = await supabase
+          .from('tickets')
+          .select('id')
+          .eq('event_id', event.id);
+
+        if (ticketCheckError) throw ticketCheckError;
+
+        // If no tickets exist, create them based on venue capacity
+        if (!existingTickets || existingTickets.length === 0) {
+          const venueCapacity = event.venue?.capacity || 100;
+          
+          const { error: createTicketError } = await supabase
+            .from('tickets')
+            .insert({
+              event_id: event.id,
+              ticket_type: 'General Admission',
+              price: 1999, // $19.99 default price (stored in cents)
+              quantity_total: venueCapacity,
+              quantity_remaining: venueCapacity
+            });
+
+          if (createTicketError) throw createTicketError;
+        }
+      }
+
+      // Fetch tickets after ensuring they exist
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
         .select('*')
