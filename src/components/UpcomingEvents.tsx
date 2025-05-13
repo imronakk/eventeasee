@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, TicketIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { BookTicketDialog } from '@/components/BookTicketDialog';
 
 const UpcomingEvents = () => {
   const [events, setEvents] = useState([]);
@@ -24,7 +25,10 @@ const UpcomingEvents = () => {
         .from('events')
         .select(`
           *,
-          venue:venues(name),
+          venue:venues(
+            name,
+            capacity
+          ),
           artist:artists(
             id,
             profiles:profiles!artists_id_fkey(full_name)
@@ -176,12 +180,18 @@ const UpcomingEvents = () => {
                           Details
                         </Button>
                       </Link>
-                      <Link to={`/events/${event.id}/book`}>
-                        <Button size="sm">
-                          <TicketIcon className="h-4 w-4 mr-2" />
-                          Book Tickets
-                        </Button>
-                      </Link>
+                      
+                      {event.tickets?.[0] && event.tickets[0].quantity_remaining > 0 ? (
+                        <BookTicketDialog 
+                          eventId={event.id}
+                          eventName={event.name}
+                          ticketId={event.tickets[0].id}
+                          ticketPrice={event.tickets[0].price}
+                          maxQuantity={event.tickets[0].quantity_remaining}
+                        />
+                      ) : (
+                        <Button disabled>Sold Out</Button>
+                      )}
                     </div>
                   </div>
                 </div>

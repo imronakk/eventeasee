@@ -1,13 +1,15 @@
+
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TicketIcon, BarChart3Icon, Settings2Icon, StarIcon, ShoppingCart } from 'lucide-react';
+import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import UpcomingEvents from '@/components/UpcomingEvents';
+import { formatDate, formatCurrency } from '@/utils/formatters';
 
 interface Artist {
   id: string;
@@ -24,20 +26,29 @@ interface Event {
   ticketPrice: number;
 }
 
+interface Ticket {
+  id: string;
+  eventName: string;
+  venue: string;
+  date: string;
+  time: string;
+  quantity: number;
+  totalAmount: number;
+}
+
 const AudienceDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromParams = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromParams || "overview");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loadingArtists, setLoadingArtists] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
-
-  const upcomingTickets = [
-    { id: '1', eventName: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM', quantity: 2 },
-    { id: '2', eventName: 'Rock Concert', venue: 'Stadium Arena', date: '2023-12-05', time: '9:00 PM', quantity: 1 },
-  ];
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const handleUpdatePreferences = () => {
     toast({
@@ -45,6 +56,19 @@ const AudienceDashboard = () => {
       description: "Feature coming soon! This will allow you to set your preferred genres and artists.",
     });
   };
+
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
+
+  useEffect(() => {
+    // If tab is in URL params, update active tab
+    if (tabFromParams) {
+      setActiveTab(tabFromParams);
+    }
+  }, [tabFromParams]);
 
   useEffect(() => {
     const fetchArtists = async () => {
@@ -133,6 +157,69 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
+  useEffect(() => {
+    const fetchUserTickets = async () => {
+      if (!user) return;
+      
+      setLoadingTickets(true);
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            id,
+            quantity,
+            total_amount,
+            created_at,
+            tickets:tickets!inner(
+              id,
+              price,
+              ticket_type,
+              events:events!inner(
+                id,
+                name,
+                event_date,
+                venue:venues(
+                  name
+                )
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Format tickets for display
+        const formattedTickets = data.map((booking: any) => ({
+          id: booking.id,
+          eventName: booking.tickets.events.name,
+          venue: booking.tickets.events.venue?.name || 'TBA',
+          date: formatDate(booking.tickets.events.event_date),
+          time: new Date(booking.tickets.events.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          quantity: booking.quantity,
+          totalAmount: booking.total_amount,
+          eventId: booking.tickets.events.id
+        }));
+        
+        setTickets(formattedTickets);
+      } catch (error: any) {
+        console.error('Error fetching tickets:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching tickets",
+          description: error.message || "Could not load your tickets"
+        });
+      } finally {
+        setLoadingTickets(false);
+      }
+    };
+
+    if (activeTab === 'tickets') {
+      fetchUserTickets();
+    }
+  }, [activeTab, user, toast]);
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -145,7 +232,7 @@ const AudienceDashboard = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
@@ -184,15 +271,15 @@ const AudienceDashboard = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Recommended Events</CardTitle>
-                <CardDescription>Based on your preferences</CardDescription>
+                <CardTitle>My Tickets</CardTitle>
+                <CardDescription>Events you're attending</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5</div>
+                <div className="text-2xl font-bold">{tickets.length}</div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/events')}>
-                  Browse events
+                <Button variant="outline" className="w-full" onClick={() => handleTabChange('tickets')}>
+                  View Tickets
                 </Button>
               </CardFooter>
             </Card>
@@ -208,18 +295,30 @@ const AudienceDashboard = () => {
               <CardDescription>Events you're attending</CardDescription>
             </CardHeader>
             <CardContent>
-              {upcomingTickets.length > 0 ? (
+              {loadingTickets ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <div className="animate-pulse flex space-x-2 justify-center">
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  </div>
+                  <p className="mt-2">Loading your tickets...</p>
+                </div>
+              ) : tickets.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingTickets.map((ticket) => (
+                  {tickets.map((ticket) => (
                     <div key={ticket.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
                       <div>
                         <h3 className="font-medium">{ticket.eventName}</h3>
                         <p className="text-sm text-muted-foreground">
                           {ticket.venue} • {ticket.date} • {ticket.time}
                         </p>
-                        <p className="text-sm">Tickets: {ticket.quantity}</p>
+                        <div className="flex gap-4 mt-1">
+                          <p className="text-sm">Tickets: {ticket.quantity}</p>
+                          <p className="text-sm font-semibold">Total: {formatCurrency(ticket.totalAmount)}</p>
+                        </div>
                       </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.id}`)}>
+                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.eventId}`)}>
                         View Event
                       </Button>
                     </div>
