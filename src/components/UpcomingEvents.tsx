@@ -181,16 +181,20 @@ const UpcomingEvents = () => {
                         </Button>
                       </Link>
                       
-                      {event.tickets?.[0] && event.tickets[0].quantity_remaining > 0 ? (
-                        <BookTicketDialog 
-                          eventId={event.id}
-                          eventName={event.name}
-                          ticketId={event.tickets[0].id}
-                          ticketPrice={event.tickets[0].price}
-                          maxQuantity={event.tickets[0].quantity_remaining}
-                        />
+                      {event.tickets?.[0] ? (
+                        event.tickets[0].quantity_remaining > 0 ? (
+                          <BookTicketDialog 
+                            eventId={event.id}
+                            eventName={event.name}
+                            ticketId={event.tickets[0].id}
+                            ticketPrice={event.tickets[0].price}
+                            maxQuantity={event.tickets[0].quantity_remaining}
+                          />
+                        ) : (
+                          <Button disabled>Sold Out</Button>
+                        )
                       ) : (
-                        <Button disabled>Sold Out</Button>
+                        <Button disabled>No tickets available</Button>
                       )}
                     </div>
                   </div>
