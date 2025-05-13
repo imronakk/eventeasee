@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +33,7 @@ interface Ticket {
   time: string;
   quantity: number;
   totalAmount: number;
+  eventId?: string; // Make eventId optional to match our current data structure
 }
 
 const AudienceDashboard = () => {
@@ -190,7 +190,7 @@ const AudienceDashboard = () => {
 
         if (error) throw error;
 
-        // Format tickets for display
+        // Format tickets for display and include eventId
         const formattedTickets = data.map((booking: any) => ({
           id: booking.id,
           eventName: booking.tickets.events.name,
@@ -199,7 +199,7 @@ const AudienceDashboard = () => {
           time: new Date(booking.tickets.events.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           quantity: booking.quantity,
           totalAmount: booking.total_amount,
-          eventId: booking.tickets.events.id
+          eventId: booking.tickets.events.id // Make sure to include eventId
         }));
         
         setTickets(formattedTickets);
@@ -318,9 +318,11 @@ const AudienceDashboard = () => {
                           <p className="text-sm font-semibold">Total: {formatCurrency(ticket.totalAmount)}</p>
                         </div>
                       </div>
-                      <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.eventId}`)}>
-                        View Event
-                      </Button>
+                      {ticket.eventId && (
+                        <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.eventId}`)}>
+                          View Event
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
