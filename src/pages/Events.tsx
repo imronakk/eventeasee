@@ -20,40 +20,33 @@ const Events = () => {
           id,
           venue_id,
           artist_id,
-          title,
+          name,
           description,
-          date,
-          start_time,
-          end_time,
-          artist_ids,
-          ticket_price,
-          tickets_available,
-          tickets_sold,
-          image,
+          event_date,
+          duration,
           status
         `)
         .eq('status', 'scheduled')
-        .order('date', { ascending: true });
+        .order('event_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching events:', error);
         setEvents([]);
       } else if (data) {
-        // The data is of partial structure, ensure proper types and defaults
+        // Map the database fields to our Event type
         const formattedEvents: Event[] = data.map((event: any) => ({
           id: event.id,
           venueId: event.venue_id,
-          // artistIds can be null or undefined — default to empty array if so
-          artistIds: event.artist_ids || [],
-          title: event.title,
+          artistIds: event.artist_id ? [event.artist_id] : [],
+          title: event.name || 'Untitled Event',
           description: event.description || '',
-          date: new Date(event.date),
-          startTime: event.start_time,
-          endTime: event.end_time,
-          ticketPrice: Number(event.ticket_price) || 0,
-          ticketsAvailable: event.tickets_available || 0,
-          ticketsSold: event.tickets_sold || 0,
-          image: event.image || undefined,
+          date: new Date(event.event_date),
+          startTime: '00:00', // Default since we don't have separate start_time
+          endTime: '23:59', // Default since we don't have separate end_time
+          ticketPrice: 0, // Default since not in events table
+          ticketsAvailable: 0, // Default since not in events table
+          ticketsSold: 0, // Default since not in events table
+          image: undefined,
           status: event.status || 'draft',
         }));
         setEvents(formattedEvents);

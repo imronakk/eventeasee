@@ -31,6 +31,9 @@ const ArtistDashboard = () => {
     new Date(event.event_date) >= new Date()
   );
 
+  // Get unique venue IDs that the artist has already sent requests to
+  const requestedVenueIds = pendingRequests.map(request => request.venueId);
+
   useEffect(() => {
     if (user) {
       fetchPerformanceRequests();
