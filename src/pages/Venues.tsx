@@ -1,243 +1,139 @@
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Users, Star } from 'lucide-react';
+import VenueRequestButton from '@/components/VenueRequestButton';
 import { useAuth } from '@/hooks/useAuth';
-import { Link } from 'react-router-dom';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from '@/components/ui/textarea';
+
+interface Venue {
+  id: string;
+  name: string;
+  description: string;
+  address: string;
+  capacity: number;
+  amenities: string[];
+  images: string[];
+  owner_id: string;
+}
 
 const Venues = () => {
-  const { toast } = useToast();
   const { user } = useAuth();
-  const [venues, setVenues] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedVenue, setSelectedVenue] = useState<any>(null);
-  const [isRequestOpen, setIsRequestOpen] = useState(false);
-  const [requestMessage, setRequestMessage] = useState('');
-  const [requestDate, setRequestDate] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [existingRequests, setExistingRequests] = useState<string[]>([]);
 
   useEffect(() => {
     fetchVenues();
-  }, []);
+    if (user) {
+      fetchExistingRequests();
+    }
+  }, [user]);
 
   const fetchVenues = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('venues')
-        .select('*');
+    setLoading(true);
 
-      if (error) throw error;
-      
-      setVenues(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error fetching venues",
-        description: error.message || "Could not load venues."
-      });
-    } finally {
-      setLoading(false);
+    const { data, error } = await supabase
+      .from('venues')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching venues:', error);
+      setVenues([]);
+    } else if (data) {
+      setVenues(data);
+    }
+    setLoading(false);
+  };
+
+  const fetchExistingRequests = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('show_requests')
+      .select('venue_id')
+      .eq('artist_id', user.id);
+
+    if (error) {
+      console.error('Error fetching existing requests:', error);
+    } else if (data) {
+      setExistingRequests(data.map(request => request.venue_id));
     }
   };
 
-  const handleRequestToPerform = (venue: any) => {
-    setSelectedVenue(venue);
-    setIsRequestOpen(true);
+  const handleRequestSent = () => {
+    // Refresh existing requests after a new request is sent
+    fetchExistingRequests();
   };
-
-  const handleRequestSubmit = async () => {
-    if (!user || !selectedVenue || !requestDate) {
-      toast({
-        variant: "destructive",
-        title: "Missing information",
-        description: "Please provide all required information."
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Format the request data
-      const requestData = {
-        artist_id: user.id,
-        venue_id: selectedVenue.id,
-        proposed_date: new Date(requestDate).toISOString(),
-        message: requestMessage,
-        initiator: 'artist' as const,
-        status: 'pending'
-      };
-      
-      // Submit the request to the database
-      const { error } = await supabase
-        .from('show_requests')
-        .insert(requestData);
-        
-      if (error) throw error;
-      
-      // Success message
-      toast({
-        title: "Request sent",
-        description: `Your performance request to ${selectedVenue.name} has been sent.`
-      });
-      
-      // Close the dialog and reset form
-      setIsRequestOpen(false);
-      setRequestMessage('');
-      setRequestDate('');
-      setSelectedVenue(null);
-      
-    } catch (error: any) {
-      console.error("Error sending performance request:", error);
-      toast({
-        variant: "destructive",
-        title: "Error sending request",
-        description: error.message || "Could not send your request. Please try again."
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const filteredVenues = venues.filter(venue => 
-    venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    venue.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    venue.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-6xl">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Browse Venues</h1>
-          <p className="text-muted-foreground mt-2">Find the perfect venue for your next performance</p>
-        </div>
-        
-        <div className="w-full md:w-auto">
-          <Input
-            placeholder="Search venues..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-80"
-          />
-        </div>
-      </div>
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-8 text-center">Find Venues</h1>
 
       {loading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-pulse flex space-x-2">
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
-          </div>
-        </div>
+        <div className="text-center text-gray-600">Loading venues...</div>
+      ) : venues.length === 0 ? (
+        <div className="text-center text-gray-600">No venues found.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVenues.length > 0 ? (
-            filteredVenues.map((venue) => (
-              <Card key={venue.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <CardTitle>{venue.name}</CardTitle>
-                  <CardDescription>Capacity: {venue.capacity} people</CardDescription>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {venues.map((venue) => {
+            const hasAlreadyRequested = existingRequests.includes(venue.id);
+            
+            return (
+              <Card key={venue.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>{venue.name}</span>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {venue.capacity}
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {venue.description || "No description available"}
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                    {venue.description || 'No description available.'}
                   </p>
-                  <div>
-                    <Label className="text-xs">Address</Label>
-                    <p className="text-sm">{venue.address}</p>
+                  
+                  <div className="flex items-center text-xs text-muted-foreground mb-3">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {venue.address}
                   </div>
+                  
                   {venue.amenities && venue.amenities.length > 0 && (
-                    <div>
-                      <Label className="text-xs">Amenities</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {venue.amenities.map((amenity: string, index: number) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
-                          >
+                    <div className="mb-4">
+                      <p className="text-xs font-medium mb-1">Amenities:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {venue.amenities.slice(0, 3).map((amenity, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
                             {amenity}
-                          </span>
+                          </Badge>
                         ))}
+                        {venue.amenities.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{venue.amenities.length - 3} more
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   )}
-                </CardContent>
-                <CardFooter>
-                  {user?.role === 'artist' && (
-                    <Button 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => handleRequestToPerform(venue)}
-                    >
-                      Request to Perform
-                    </Button>
+
+                  {user && user.user_type === 'artist' && (
+                    <VenueRequestButton
+                      venueId={venue.id}
+                      venueName={venue.name}
+                      hasAlreadyRequested={hasAlreadyRequested}
+                      onRequestSent={handleRequestSent}
+                    />
                   )}
-                </CardFooter>
+                </CardContent>
               </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <h3 className="text-lg font-medium">No venues found</h3>
-              <p className="text-muted-foreground mt-1">Try adjusting your search criteria</p>
-            </div>
-          )}
+            );
+          })}
         </div>
       )}
-
-      {/* Performance Request Dialog */}
-      <Dialog open={isRequestOpen} onOpenChange={setIsRequestOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Request to Perform</DialogTitle>
-            <DialogDescription>
-              Send a request to perform at {selectedVenue?.name}. Please provide details about your performance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="date">Proposed Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={requestDate}
-                onChange={(e) => setRequestDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="message">Message to Venue Owner</Label>
-              <Textarea
-                id="message"
-                placeholder="Tell the venue about your performance, requirements, or any other details..."
-                rows={4}
-                value={requestMessage}
-                onChange={(e) => setRequestMessage(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRequestOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleRequestSubmit} 
-              disabled={isSubmitting || !requestDate}
-            >
-              {isSubmitting ? "Sending..." : "Send Request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
