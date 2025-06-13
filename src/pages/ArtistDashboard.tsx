@@ -25,10 +25,11 @@ const ArtistDashboard = () => {
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
 
-  const upcomingEvents = [
-    { id: '1', name: 'Jazz Night', venue: 'Blue Note Club', date: '2023-11-15', time: '8:00 PM' },
-    { id: '2', name: 'Summer Festival', venue: 'Central Park', date: '2023-12-05', time: '4:00 PM' },
-  ];
+  // Filter upcoming events (scheduled status and future date)
+  const upcomingEvents = events.filter(event => 
+    event.status === 'scheduled' && 
+    new Date(event.event_date) >= new Date()
+  );
 
   useEffect(() => {
     if (user) {
