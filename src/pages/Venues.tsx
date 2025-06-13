@@ -120,7 +120,7 @@ const Venues = () => {
                     </div>
                   )}
 
-                  {user && user.user_type === 'artist' && (
+                  {user && user.role === 'artist' && (
                     <VenueRequestButton
                       venueId={venue.id}
                       venueName={venue.name}
