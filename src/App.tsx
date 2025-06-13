@@ -21,6 +21,7 @@ import Venues from "./pages/Venues";
 import Artist from "./pages/Artist";
 import Artists from "./pages/Artists";
 import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -128,7 +129,7 @@ const App = () => (
                 path="/events/:id" 
                 element={
                   <MainLayout>
-                    <NotFound />
+                    <EventDetail />
                   </MainLayout>
                 } 
               />
