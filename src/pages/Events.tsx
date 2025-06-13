@@ -32,6 +32,7 @@ const Events = () => {
           image,
           status
         `)
+        .eq('status', 'scheduled')
         .order('date', { ascending: true });
 
       if (error) {
@@ -65,12 +66,12 @@ const Events = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-8 text-center">All Events</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center">Scheduled Events</h1>
 
       {loading ? (
         <div className="text-center text-gray-600">Loading events...</div>
       ) : events.length === 0 ? (
-        <div className="text-center text-gray-600">No events found.</div>
+        <div className="text-center text-gray-600">No scheduled events found.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {events.map((event) => (
@@ -104,4 +105,3 @@ const Events = () => {
 };
 
 export default Events;
-

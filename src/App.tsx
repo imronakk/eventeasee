@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -78,23 +79,67 @@ const App = () => (
                 } 
               />
               
-              {/* Artist Routes */}
-              <Route path="/artists" element={<Artists />} />
-              <Route path="/artists/:id" element={<Artist />} />
+              {/* Artist Routes wrapped with MainLayout */}
+              <Route 
+                path="/artists" 
+                element={
+                  <MainLayout>
+                    <Artists />
+                  </MainLayout>
+                } 
+              />
+              <Route 
+                path="/artists/:id" 
+                element={
+                  <MainLayout>
+                    <Artist />
+                  </MainLayout>
+                } 
+              />
               
-              {/* Venue Routes */}
-              <Route path="/venues" element={<Venues />} />
-              <Route path="/venues/:id" element={<NotFound />} />
+              {/* Venue Routes wrapped with MainLayout */}
+              <Route 
+                path="/venues" 
+                element={
+                  <MainLayout>
+                    <Venues />
+                  </MainLayout>
+                } 
+              />
+              <Route 
+                path="/venues/:id" 
+                element={
+                  <MainLayout>
+                    <NotFound />
+                  </MainLayout>
+                } 
+              />
               
-              {/* Event Routes */}
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/:id" element={<NotFound />} />
+              {/* Event Routes wrapped with MainLayout */}
+              <Route 
+                path="/events" 
+                element={
+                  <MainLayout>
+                    <Events />
+                  </MainLayout>
+                } 
+              />
+              <Route 
+                path="/events/:id" 
+                element={
+                  <MainLayout>
+                    <NotFound />
+                  </MainLayout>
+                } 
+              />
               <Route 
                 path="/events/:id/book" 
                 element={
-                  <ProtectedRoute>
-                    <NotFound />
-                  </ProtectedRoute>
+                  <MainLayout>
+                    <ProtectedRoute>
+                      <NotFound />
+                    </ProtectedRoute>
+                  </MainLayout>
                 } 
               />
               
