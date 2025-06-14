@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, BuildingIcon, BarChart3Icon, Settings2Icon, CheckIcon, XIcon, MessageSquare, Users } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CalendarIcon, BuildingIcon, BarChart3Icon, Settings2Icon, CheckIcon, XIcon, MessageSquare, Users, InfoIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,33 @@ import ChatInterface from '@/components/ChatInterface';
 import CreateEventDialog from '@/components/CreateEventDialog';
 import EventCard from '@/components/EventCard';
 import UpdateEventDialog from '@/components/UpdateEventDialog';
+
+interface BookingInfo {
+  id: string;
+  customer_name: string;
+  contact_number: string;
+  quantity: number;
+  total_amount: number;
+  payment_method: string;
+  status: string;
+  created_at: string;
+  event: {
+    id: string;
+    name: string;
+    event_date: string;
+    price: number;
+    description: string;
+    venue: {
+      name: string;
+      capacity: number;
+    };
+    artist: {
+      profile: {
+        full_name: string;
+      };
+    };
+  };
+}
 
 const VenueDashboard = () => {
   const { user } = useAuth();
@@ -38,6 +66,8 @@ const VenueDashboard = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [updateEventDialogOpen, setUpdateEventDialogOpen] = useState(false);
+  const [bookingInfo, setBookingInfo] = useState<BookingInfo[]>([]);
+  const [bookingInfoLoading, setBookingInfoLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -401,6 +431,63 @@ const VenueDashboard = () => {
     window.history.pushState({}, '', url);
   };
 
+  const fetchBookingInfo = async () => {
+    if (!venues.length) return;
+    
+    setBookingInfoLoading(true);
+    try {
+      const venueIds = venues.map(venue => venue.id);
+      
+      const { data, error } = await supabase
+        .from('ticket_info')
+        .select(`
+          id,
+          customer_name,
+          contact_number,
+          quantity,
+          total_amount,
+          payment_method,
+          status,
+          created_at,
+          event:events!ticket_info_event_id_fkey (
+            id,
+            name,
+            event_date,
+            price,
+            description,
+            venue:venues!events_venue_id_fkey (
+              name,
+              capacity
+            ),
+            artist:artists!events_artist_id_fkey (
+              profile:profiles!artists_id_fkey (
+                full_name
+              )
+            )
+          )
+        `)
+        .in('event.venue_id', venueIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBookingInfo(data || []);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching booking information",
+        description: error.message || "Could not load booking information."
+      });
+    } finally {
+      setBookingInfoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (venues.length > 0 && activeTab === 'event-info') {
+      fetchBookingInfo();
+    }
+  }, [venues, activeTab]);
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -414,7 +501,7 @@ const VenueDashboard = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-6 md:w-[750px] mb-8">
+        <TabsList className="grid grid-cols-7 md:w-[900px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -434,6 +521,10 @@ const VenueDashboard = () => {
           <TabsTrigger value="events" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="event-info" className="flex items-center gap-2">
+            <InfoIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Event Info</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings2Icon className="h-4 w-4" />
@@ -725,6 +816,103 @@ const VenueDashboard = () => {
                   <Button className="mt-4" onClick={() => setActiveTab("requests")}>
                     View Requests to Create Event
                   </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="event-info" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Event Information & Bookings</CardTitle>
+              <CardDescription>Detailed information about all events and their bookings at your venues</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bookingInfoLoading ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading booking information...
+                </div>
+              ) : bookingInfo.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <InfoIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No bookings found</p>
+                  <p className="text-sm">Bookings will appear here once tickets are sold for your events.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event Details</TableHead>
+                        <TableHead>Artist</TableHead>
+                        <TableHead>Venue Info</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Tickets</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Booked On</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookingInfo.map((booking) => (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <p className="font-semibold">{booking.event.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(booking.event.event_date).toLocaleDateString()}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                ₹{booking.event.price} per ticket
+                              </p>
+                              {booking.event.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                  {booking.event.description}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {booking.event.artist?.profile?.full_name || 'Unknown Artist'}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{booking.event.venue?.name || 'Unknown Venue'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Capacity: {booking.event.venue?.capacity || 'Unknown'}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{booking.customer_name}</TableCell>
+                          <TableCell>{booking.contact_number}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {booking.quantity} tickets
+                            </Badge>
+                          </TableCell>
+                          <TableCell>₹{booking.total_amount}</TableCell>
+                          <TableCell className="capitalize">
+                            {booking.payment_method}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              booking.status === 'confirmed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(booking.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
