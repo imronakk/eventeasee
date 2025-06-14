@@ -297,6 +297,63 @@ export type Database = {
           },
         ]
       }
+      ticket_info: {
+        Row: {
+          contact_number: string
+          created_at: string
+          customer_name: string
+          event_id: string
+          id: string
+          payment_method: string
+          quantity: number
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_number: string
+          created_at?: string
+          customer_name: string
+          event_id: string
+          id?: string
+          payment_method?: string
+          quantity: number
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_number?: string
+          created_at?: string
+          customer_name?: string
+          event_id?: string
+          id?: string
+          payment_method?: string
+          quantity?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_info_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_info_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           created_at: string | null

@@ -82,17 +82,18 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
 
     setLoading(true);
     try {
-      // Create booking record with additional customer details
+      // Create booking record in ticket_info table
       const { error } = await supabase
-        .from('bookings')
+        .from('ticket_info')
         .insert({
+          event_id: event.id,
           user_id: user.id,
-          ticket_id: event.id, // Using event id as ticket reference for simplicity
+          customer_name: customerName.trim(),
+          contact_number: contactNumber.trim(),
           quantity: quantity,
           total_amount: totalPrice,
-          status: 'confirmed',
-          // Note: We would need to add these fields to the bookings table schema
-          // For now, we'll store them in a JSON field or add separate columns
+          payment_method: paymentMethod,
+          status: 'confirmed'
         });
 
       if (error) throw error;
