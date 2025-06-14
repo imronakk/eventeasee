@@ -2,6 +2,7 @@
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { IndianRupee } from 'lucide-react';
 
 interface EventCardProps {
   event: {
@@ -11,6 +12,7 @@ interface EventCardProps {
     event_date: string;
     duration: string;
     status: string;
+    price?: number | null;
     artist?: {
       profile?: {
         full_name: string;
@@ -47,6 +49,12 @@ const EventCard = ({ event }: EventCardProps) => {
           <p className="text-sm text-muted-foreground">
             Duration: {event.duration}
           </p>
+          {event.price !== null && event.price !== undefined && (
+            <div className="flex items-center text-sm font-semibold text-primary">
+              <IndianRupee className="h-4 w-4 mr-1" />
+              <span>{event.price}</span>
+            </div>
+          )}
           {event.description && (
             <p className="text-sm mt-2">{event.description}</p>
           )}

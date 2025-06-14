@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -7,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface CreateEventDialogProps {
   open: boolean;
@@ -29,15 +29,26 @@ const CreateEventDialog = ({ open, onOpenChange, artist, venue }: CreateEventDia
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('02:00'); // Default 2 hours
+  const [price, setPrice] = useState('0');
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!date || !name || !duration) {
+    if (!date || !name || !duration || !price) {
       toast({
         variant: "destructive",
         title: "Missing fields",
         description: "Please fill in all required fields",
+      });
+      return;
+    }
+
+    const priceNumber = parseFloat(price);
+    if (isNaN(priceNumber) || priceNumber < 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid price",
+        description: "Please enter a valid price (0 or greater)",
       });
       return;
     }
@@ -57,6 +68,7 @@ const CreateEventDialog = ({ open, onOpenChange, artist, venue }: CreateEventDia
           duration: durationInterval,
           name,
           description,
+          price: priceNumber,
           status: 'scheduled'
         });
 
@@ -73,6 +85,7 @@ const CreateEventDialog = ({ open, onOpenChange, artist, venue }: CreateEventDia
       setName('');
       setDescription('');
       setDuration('02:00');
+      setPrice('0');
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -124,6 +137,19 @@ const CreateEventDialog = ({ open, onOpenChange, artist, venue }: CreateEventDia
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
               step="900" // 15 minutes steps
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="price">Ticket Price (₹)</Label>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Enter ticket price"
             />
           </div>
 

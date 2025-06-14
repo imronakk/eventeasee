@@ -18,6 +18,7 @@ interface UpdateEventDialogProps {
     description: string | null;
     event_date: string;
     duration: string;
+    price: number | null;
     artist: {
       profile?: {
         full_name: string;
@@ -36,15 +37,26 @@ const UpdateEventDialog = ({ open, onOpenChange, event, onUpdate }: UpdateEventD
   const [description, setDescription] = useState(event.description || '');
   const [duration, setDuration] = useState(event.duration.split(' ')[0].padStart(2, '0') + ':' + 
     (event.duration.split(' ')[2] || '00').padStart(2, '0')); // Convert "2 hours 30 minutes" to "02:30"
+  const [price, setPrice] = useState(event.price?.toString() || '0');
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!date || !name || !duration) {
+    if (!date || !name || !duration || !price) {
       toast({
         variant: "destructive",
         title: "Missing fields",
         description: "Please fill in all required fields",
+      });
+      return;
+    }
+
+    const priceNumber = parseFloat(price);
+    if (isNaN(priceNumber) || priceNumber < 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid price",
+        description: "Please enter a valid price (0 or greater)",
       });
       return;
     }
@@ -61,6 +73,7 @@ const UpdateEventDialog = ({ open, onOpenChange, event, onUpdate }: UpdateEventD
           duration: durationInterval,
           name,
           description,
+          price: priceNumber,
         })
         .eq('id', event.id);
 
@@ -124,6 +137,19 @@ const UpdateEventDialog = ({ open, onOpenChange, event, onUpdate }: UpdateEventD
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
               step="900" // 15 minutes steps
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="price">Ticket Price (₹)</Label>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Enter ticket price"
             />
           </div>
 

@@ -24,7 +24,8 @@ const Events = () => {
           description,
           event_date,
           duration,
-          status
+          status,
+          price
         `)
         .eq('status', 'scheduled')
         .order('event_date', { ascending: true });
@@ -43,7 +44,7 @@ const Events = () => {
           date: new Date(event.event_date),
           startTime: '00:00', // Default since we don't have separate start_time
           endTime: '23:59', // Default since we don't have separate end_time
-          ticketPrice: 0, // Default since not in events table
+          ticketPrice: event.price || 0,
           ticketsAvailable: 0, // Default since not in events table
           ticketsSold: 0, // Default since not in events table
           image: undefined,
@@ -80,6 +81,9 @@ const Events = () => {
                   Date: {event.date.toLocaleDateString()}
                 </p>
                 <p className="text-xs text-muted-foreground">Status: {event.status}</p>
+                <p className="text-sm font-semibold text-primary mt-2">
+                  Price: ₹{event.ticketPrice}
+                </p>
 
                 <div className="mt-4">
                   <Link to={`/events/${event.id}`}>

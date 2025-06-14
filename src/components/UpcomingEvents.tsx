@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { formatDate, formatTime } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, IndianRupee } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -137,6 +137,15 @@ const UpcomingEvents = () => {
                       </div>
                     </div>
                   </div>
+
+                  {event.price && (
+                    <div className="absolute top-4 right-4 bg-primary text-primary-foreground rounded-lg px-3 py-1 shadow-md">
+                      <div className="flex items-center text-sm font-semibold">
+                        <IndianRupee className="h-3 w-3 mr-1" />
+                        {event.price}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-6">
