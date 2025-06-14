@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon } from 'lu
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import BookTicketDialog from '@/components/BookTicketDialog';
 
 interface Artist {
   id: string;
@@ -23,6 +23,23 @@ interface Event {
   time: string;
 }
 
+interface ScheduledEvent {
+  id: string;
+  name: string;
+  description: string | null;
+  event_date: string;
+  price: number;
+  venue: {
+    name: string;
+    capacity: number;
+  };
+  artist: {
+    profile: {
+      full_name: string;
+    };
+  };
+}
+
 const AudienceDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,6 +51,9 @@ const AudienceDashboard = () => {
   const [loadingArtists, setLoadingArtists] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
+  const [loadingScheduledEvents, setLoadingScheduledEvents] = useState(false);
+  const [bookedTickets, setBookedTickets] = useState<Record<string, number>>({});
 
   const handleUpdatePreferences = () => {
     toast({
@@ -141,6 +161,125 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
+  useEffect(() => {
+    const fetchScheduledEvents = async () => {
+      setLoadingScheduledEvents(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select(`
+            id,
+            name,
+            description,
+            event_date,
+            price,
+            venue:venues!events_venue_id_fkey (
+              name,
+              capacity
+            ),
+            artist:artists!events_artist_id_fkey (
+              profile:profiles!artists_id_fkey (
+                full_name
+              )
+            )
+          `)
+          .eq('status', 'scheduled')
+          .gte('event_date', new Date().toISOString())
+          .order('event_date', { ascending: true });
+
+        if (error) throw error;
+
+        setScheduledEvents(data || []);
+        await fetchBookedTicketsCount(data || []);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching scheduled events",
+          description: error.message || "Could not load scheduled events",
+        });
+      } finally {
+        setLoadingScheduledEvents(false);
+      }
+    };
+
+    const fetchBookedTicketsCount = async (events: ScheduledEvent[]) => {
+      try {
+        const eventIds = events.map(event => event.id);
+        
+        if (eventIds.length === 0) return;
+
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('ticket_id, quantity')
+          .in('ticket_id', eventIds)
+          .eq('status', 'confirmed');
+
+        if (error) throw error;
+
+        const ticketCounts: Record<string, number> = {};
+        data?.forEach((booking: any) => {
+          ticketCounts[booking.ticket_id] = (ticketCounts[booking.ticket_id] || 0) + booking.quantity;
+        });
+
+        setBookedTickets(ticketCounts);
+      } catch (error) {
+        console.error('Error fetching booked tickets count:', error);
+      }
+    };
+
+    if (activeTab === 'events') {
+      fetchScheduledEvents();
+    }
+  }, [activeTab, toast]);
+
+  const handleBookingSuccess = () => {
+    // Refresh the scheduled events to update available tickets
+    if (activeTab === 'events') {
+      const fetchScheduledEvents = async () => {
+        const { data, error } = await supabase
+          .from('events')
+          .select(`
+            id,
+            name,
+            description,
+            event_date,
+            price,
+            venue:venues!events_venue_id_fkey (
+              name,
+              capacity
+            ),
+            artist:artists!events_artist_id_fkey (
+              profile:profiles!artists_id_fkey (
+                full_name
+              )
+            )
+          `)
+          .eq('status', 'scheduled')
+          .gte('event_date', new Date().toISOString())
+          .order('event_date', { ascending: true });
+
+        if (!error && data) {
+          setScheduledEvents(data);
+          
+          // Update booked tickets count
+          const eventIds = data.map(event => event.id);
+          const { data: bookingsData } = await supabase
+            .from('bookings')
+            .select('ticket_id, quantity')
+            .in('ticket_id', eventIds)
+            .eq('status', 'confirmed');
+
+          const ticketCounts: Record<string, number> = {};
+          bookingsData?.forEach((booking: any) => {
+            ticketCounts[booking.ticket_id] = (ticketCounts[booking.ticket_id] || 0) + booking.quantity;
+          });
+          setBookedTickets(ticketCounts);
+        }
+      };
+      fetchScheduledEvents();
+    }
+  };
+
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -154,10 +293,14 @@ const AudienceDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-3 md:w-[450px] mb-8">
+        <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="flex items-center gap-2">
+            <TicketIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Events</span>
           </TabsTrigger>
           <TabsTrigger value="artists" className="flex items-center gap-2">
             <StarIcon className="h-4 w-4" />
@@ -235,6 +378,78 @@ const AudienceDashboard = () => {
                 <StarIcon className="h-6 w-6" />
                 <span>Explore Artists</span>
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scheduled Events</CardTitle>
+              <CardDescription>Book tickets for upcoming events</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingScheduledEvents ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading scheduled events...
+                </div>
+              ) : scheduledEvents.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No scheduled events found.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {scheduledEvents.map(event => {
+                    const bookedCount = bookedTickets[event.id] || 0;
+                    const availableTickets = event.venue.capacity - bookedCount;
+                    
+                    return (
+                      <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <CardTitle className="text-lg">{event.name}</CardTitle>
+                          <CardDescription>
+                            {event.artist?.profile?.full_name && `With ${event.artist.profile.full_name}`}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            📍 {event.venue.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            📅 {new Date(event.event_date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            🎫 {availableTickets} / {event.venue.capacity} tickets available
+                          </p>
+                          <p className="text-lg font-semibold text-primary">
+                            ₹{event.price}
+                          </p>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {event.description}
+                            </p>
+                          )}
+                        </CardContent>
+                        <CardFooter>
+                          <BookTicketDialog
+                            event={{
+                              id: event.id,
+                              name: event.name,
+                              price: event.price,
+                              venue: {
+                                name: event.venue.name,
+                                capacity: event.venue.capacity
+                              }
+                            }}
+                            availableTickets={availableTickets}
+                            onBookingSuccess={handleBookingSuccess}
+                          />
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
