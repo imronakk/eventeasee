@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,6 @@ import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon } from 'lu
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDate, formatCurrency } from '@/utils/formatters';
 
 interface Artist {
   id: string;
@@ -21,18 +21,6 @@ interface Event {
   venue: string;
   date: string;
   time: string;
-  ticketPrice: number;
-}
-
-interface Ticket {
-  id: string;
-  eventName: string;
-  venue: string;
-  date: string;
-  time: string;
-  quantity: number;
-  totalAmount: number;
-  eventId?: string;
 }
 
 const AudienceDashboard = () => {
@@ -46,8 +34,6 @@ const AudienceDashboard = () => {
   const [loadingArtists, setLoadingArtists] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const handleUpdatePreferences = () => {
     toast({
@@ -137,7 +123,6 @@ const AudienceDashboard = () => {
           venue: ev.venue?.name || 'Venue to be announced',
           date: new Date(ev.event_date).toLocaleDateString(),
           time: '',
-          ticketPrice: 0,
         }));
         setEvents(formattedEvents);
       } catch (error: any) {
@@ -156,69 +141,6 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
-  useEffect(() => {
-    const fetchUserTickets = async () => {
-      if (!user) return;
-      
-      setLoadingTickets(true);
-      try {
-        const { data, error } = await supabase
-          .from('bookings')
-          .select(`
-            id,
-            quantity,
-            total_amount,
-            created_at,
-            tickets:tickets!inner(
-              id,
-              price,
-              ticket_type,
-              events:events!inner(
-                id,
-                name,
-                event_date,
-                venue:venues(
-                  name
-                )
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('status', 'confirmed')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Format tickets for display and include eventId
-        const formattedTickets = data.map((booking: any) => ({
-          id: booking.id,
-          eventName: booking.tickets.events.name,
-          venue: booking.tickets.events.venue?.name || 'TBA',
-          date: formatDate(booking.tickets.events.event_date),
-          time: new Date(booking.tickets.events.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          quantity: booking.quantity,
-          totalAmount: booking.total_amount,
-          eventId: booking.tickets.events.id
-        }));
-        
-        setTickets(formattedTickets);
-      } catch (error: any) {
-        console.error('Error fetching tickets:', error);
-        toast({
-          variant: "destructive",
-          title: "Error fetching tickets",
-          description: error.message || "Could not load your tickets"
-        });
-      } finally {
-        setLoadingTickets(false);
-      }
-    };
-
-    if (activeTab === 'tickets') {
-      fetchUserTickets();
-    }
-  }, [activeTab, user, toast]);
-
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -232,14 +154,10 @@ const AudienceDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
+        <TabsList className="grid grid-cols-3 md:w-[450px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="tickets" className="flex items-center gap-2">
-            <TicketIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">My Tickets</span>
           </TabsTrigger>
           <TabsTrigger value="artists" className="flex items-center gap-2">
             <StarIcon className="h-4 w-4" />
@@ -256,7 +174,7 @@ const AudienceDashboard = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Browse Events</CardTitle>
-                <CardDescription>Discover amazing performances and book tickets</CardDescription>
+                <CardDescription>Discover amazing performances</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{events.length}</div>
@@ -271,32 +189,32 @@ const AudienceDashboard = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>My Tickets</CardTitle>
-                <CardDescription>Events you're attending</CardDescription>
+                <CardTitle>Explore Artists</CardTitle>
+                <CardDescription>Discover talented performers</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{tickets.length}</div>
-                <p className="text-sm text-muted-foreground">tickets purchased</p>
+                <div className="text-2xl font-bold">{artists.length}</div>
+                <p className="text-sm text-muted-foreground">registered artists</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => handleTabChange('tickets')}>
-                  View Tickets
+                <Button variant="outline" className="w-full" onClick={() => handleTabChange('artists')}>
+                  View Artists
                 </Button>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Book Tickets</CardTitle>
-                <CardDescription>Get tickets for upcoming shows</CardDescription>
+                <CardTitle>Events</CardTitle>
+                <CardDescription>Find upcoming shows</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">🎫</div>
-                <p className="text-sm text-muted-foreground">book tickets now</p>
+                <p className="text-sm text-muted-foreground">explore events now</p>
               </CardContent>
               <CardFooter>
                 <Button className="w-full" onClick={() => navigate('/events')}>
-                  Book Now
+                  Explore Now
                 </Button>
               </CardFooter>
             </Card>
@@ -306,7 +224,7 @@ const AudienceDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Get started with booking tickets</CardDescription>
+              <CardDescription>Get started with exploring content</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <Button variant="outline" onClick={() => navigate('/events')} className="h-20 flex flex-col gap-2">
@@ -318,61 +236,6 @@ const AudienceDashboard = () => {
                 <span>Explore Artists</span>
               </Button>
             </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tickets" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Tickets</CardTitle>
-              <CardDescription>Events you're attending</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingTickets ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <div className="animate-pulse flex space-x-2 justify-center">
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                  </div>
-                  <p className="mt-2">Loading your tickets...</p>
-                </div>
-              ) : tickets.length > 0 ? (
-                <div className="space-y-4">
-                  {tickets.map((ticket) => (
-                    <div key={ticket.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{ticket.eventName}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {ticket.venue} • {ticket.date} • {ticket.time}
-                        </p>
-                        <div className="flex gap-4 mt-1">
-                          <p className="text-sm">Tickets: {ticket.quantity}</p>
-                          <p className="text-sm font-semibold">Total: {formatCurrency(ticket.totalAmount)}</p>
-                        </div>
-                      </div>
-                      {ticket.eventId && (
-                        <Button variant="outline" className="mt-2 md:mt-0" onClick={() => navigate(`/events/${ticket.eventId}`)}>
-                          View Event
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>You haven't purchased any tickets yet</p>
-                  <Button className="mt-4" onClick={() => navigate('/events')}>
-                    Browse Events
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/events')}>
-                Find More Events
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
 
