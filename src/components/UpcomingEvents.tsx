@@ -21,6 +21,12 @@ const UpcomingEvents = () => {
 
   const fetchUpcomingEvents = async () => {
     try {
+      console.log('Fetching upcoming events...');
+      
+      // Get current date in ISO format for comparison
+      const now = new Date().toISOString();
+      console.log('Current date for comparison:', now);
+
       const { data: eventsData, error } = await supabase
         .from('events')
         .select(`
@@ -34,26 +40,45 @@ const UpcomingEvents = () => {
             profiles:profiles!artists_id_fkey(full_name)
           )
         `)
-        .gte('event_date', new Date().toISOString())
-        .eq('status', 'scheduled')
+        .gte('event_date', now)
         .order('event_date', { ascending: true })
         .limit(4);
 
-      if (error) throw error;
+      console.log('Events query result:', { eventsData, error });
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        throw error;
+      }
+
+      if (!eventsData || eventsData.length === 0) {
+        console.log('No events found');
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
 
       // Create tickets if they don't exist
       for (const event of eventsData) {
+        console.log('Processing event:', event.id, event.name);
+        
         // Check if tickets already exist for this event
         const { data: existingTickets, error: ticketCheckError } = await supabase
           .from('tickets')
           .select('id')
           .eq('event_id', event.id);
 
-        if (ticketCheckError) throw ticketCheckError;
+        if (ticketCheckError) {
+          console.error('Error checking tickets:', ticketCheckError);
+          throw ticketCheckError;
+        }
+
+        console.log('Existing tickets for event', event.id, ':', existingTickets);
 
         // If no tickets exist, create them based on venue capacity
         if (!existingTickets || existingTickets.length === 0) {
           const venueCapacity = event.venue?.capacity || 100;
+          console.log('Creating tickets for event', event.id, 'with capacity:', venueCapacity);
           
           const { error: createTicketError } = await supabase
             .from('tickets')
@@ -65,7 +90,11 @@ const UpcomingEvents = () => {
               quantity_remaining: venueCapacity
             });
 
-          if (createTicketError) throw createTicketError;
+          if (createTicketError) {
+            console.error('Error creating tickets:', createTicketError);
+            throw createTicketError;
+          }
+          console.log('Successfully created tickets for event:', event.id);
         }
       }
 
@@ -75,14 +104,20 @@ const UpcomingEvents = () => {
         .select('*')
         .in('event_id', eventsData.map(event => event.id));
 
-      if (ticketsError) throw ticketsError;
+      if (ticketsError) {
+        console.error('Error fetching tickets:', ticketsError);
+        throw ticketsError;
+      }
+
+      console.log('Tickets data:', ticketsData);
 
       // Combine events with their ticket information
       const enrichedEvents = eventsData.map(event => ({
         ...event,
-        tickets: ticketsData.filter(ticket => ticket.event_id === event.id)
+        tickets: ticketsData?.filter(ticket => ticket.event_id === event.id) || []
       }));
 
+      console.log('Enriched events:', enrichedEvents);
       setEvents(enrichedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -91,6 +126,7 @@ const UpcomingEvents = () => {
         title: "Error",
         description: "Failed to load upcoming events"
       });
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -143,7 +179,7 @@ const UpcomingEvents = () => {
           </div>
         ) : events.length === 0 ? (
           <div className="text-center text-muted-foreground">
-            No upcoming events found.
+            <p>No upcoming events found. Check back soon for new events!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
