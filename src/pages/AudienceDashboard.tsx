@@ -7,7 +7,6 @@ import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon } from 'lu
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import UpcomingEvents from '@/components/UpcomingEvents';
 import { formatDate, formatCurrency } from '@/utils/formatters';
 
 interface Artist {
@@ -33,7 +32,7 @@ interface Ticket {
   time: string;
   quantity: number;
   totalAmount: number;
-  eventId?: string; // Make eventId optional to match our current data structure
+  eventId?: string;
 }
 
 const AudienceDashboard = () => {
@@ -199,7 +198,7 @@ const AudienceDashboard = () => {
           time: new Date(booking.tickets.events.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           quantity: booking.quantity,
           totalAmount: booking.total_amount,
-          eventId: booking.tickets.events.id // Make sure to include eventId
+          eventId: booking.tickets.events.id
         }));
         
         setTickets(formattedTickets);
@@ -256,11 +255,12 @@ const AudienceDashboard = () => {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Upcoming Events</CardTitle>
-                <CardDescription>Discover amazing performances near you</CardDescription>
+                <CardTitle>Browse Events</CardTitle>
+                <CardDescription>Discover amazing performances and book tickets</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{events.length}</div>
+                <p className="text-sm text-muted-foreground">upcoming events available</p>
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => navigate('/events')}>
@@ -276,6 +276,7 @@ const AudienceDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{tickets.length}</div>
+                <p className="text-sm text-muted-foreground">tickets purchased</p>
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => handleTabChange('tickets')}>
@@ -283,9 +284,41 @@ const AudienceDashboard = () => {
                 </Button>
               </CardFooter>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Book Tickets</CardTitle>
+                <CardDescription>Get tickets for upcoming shows</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">🎫</div>
+                <p className="text-sm text-muted-foreground">book tickets now</p>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={() => navigate('/events')}>
+                  Book Now
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
 
-          <UpcomingEvents />
+          {/* Quick access to recent events */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Get started with booking tickets</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <Button variant="outline" onClick={() => navigate('/events')} className="h-20 flex flex-col gap-2">
+                <Calendar className="h-6 w-6" />
+                <span>Browse All Events</span>
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/artists')} className="h-20 flex flex-col gap-2">
+                <StarIcon className="h-6 w-6" />
+                <span>Explore Artists</span>
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-4">
