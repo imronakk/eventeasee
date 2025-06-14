@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TicketIcon, Calendar, BarChart3Icon, Settings2Icon, StarIcon, CreditCardIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +42,29 @@ interface ScheduledEvent {
   };
 }
 
+interface BookedTicket {
+  id: string;
+  customer_name: string;
+  contact_number: string;
+  quantity: number;
+  total_amount: number;
+  payment_method: string;
+  status: string;
+  created_at: string;
+  event: {
+    name: string;
+    event_date: string;
+    venue: {
+      name: string;
+    };
+    artist: {
+      profile: {
+        full_name: string;
+      };
+    };
+  };
+}
+
 const AudienceDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,6 +78,8 @@ const AudienceDashboard = () => {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [loadingScheduledEvents, setLoadingScheduledEvents] = useState(false);
+  const [bookedTickets, setBookedTickets] = useState<BookedTicket[]>([]);
+  const [loadingBookedTickets, setLoadingBookedTickets] = useState(false);
 
   const handleUpdatePreferences = () => {
     toast({
@@ -210,6 +236,59 @@ const AudienceDashboard = () => {
     }
   }, [activeTab, toast]);
 
+  useEffect(() => {
+    const fetchBookedTickets = async () => {
+      if (!user?.id) return;
+      
+      setLoadingBookedTickets(true);
+      try {
+        const { data, error } = await supabase
+          .from('ticket_info')
+          .select(`
+            id,
+            customer_name,
+            contact_number,
+            quantity,
+            total_amount,
+            payment_method,
+            status,
+            created_at,
+            event:events!ticket_info_event_id_fkey (
+              name,
+              event_date,
+              venue:venues!events_venue_id_fkey (
+                name
+              ),
+              artist:artists!events_artist_id_fkey (
+                profile:profiles!artists_id_fkey (
+                  full_name
+                )
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setBookedTickets(data || []);
+      } catch (error: any) {
+        console.error('Error fetching booked tickets:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching bookings",
+          description: error.message || "Could not load your bookings",
+        });
+      } finally {
+        setLoadingBookedTickets(false);
+      }
+    };
+
+    if (activeTab === 'bookings') {
+      fetchBookedTickets();
+    }
+  }, [activeTab, user?.id, toast]);
+
   const handleBookingSuccess = () => {
     // Refresh the scheduled events to update ticket counts
     if (activeTab === 'events') {
@@ -258,7 +337,7 @@ const AudienceDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
+        <TabsList className="grid grid-cols-5 md:w-[750px] mb-8">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3Icon className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -266,6 +345,10 @@ const AudienceDashboard = () => {
           <TabsTrigger value="events" className="flex items-center gap-2">
             <TicketIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <CreditCardIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">My Bookings</span>
           </TabsTrigger>
           <TabsTrigger value="artists" className="flex items-center gap-2">
             <StarIcon className="h-4 w-4" />
@@ -425,6 +508,81 @@ const AudienceDashboard = () => {
                       </Card>
                     );
                   })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bookings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Bookings</CardTitle>
+              <CardDescription>View all your ticket bookings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingBookedTickets ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading your bookings...
+                </div>
+              ) : bookedTickets.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <TicketIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No bookings found</p>
+                  <p className="text-sm">Book your first ticket to see it here!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Artist</TableHead>
+                        <TableHead>Venue</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Total Amount</TableHead>
+                        <TableHead>Payment Method</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Booked On</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookedTickets.map((ticket) => (
+                        <TableRow key={ticket.id}>
+                          <TableCell className="font-medium">
+                            {ticket.event.name}
+                          </TableCell>
+                          <TableCell>
+                            {ticket.event.artist?.profile?.full_name || 'Unknown Artist'}
+                          </TableCell>
+                          <TableCell>
+                            {ticket.event.venue?.name || 'Unknown Venue'}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(ticket.event.event_date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{ticket.quantity}</TableCell>
+                          <TableCell>₹{ticket.total_amount}</TableCell>
+                          <TableCell className="capitalize">
+                            {ticket.payment_method}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              ticket.status === 'confirmed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {ticket.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
