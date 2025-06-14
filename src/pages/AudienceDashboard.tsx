@@ -361,7 +361,7 @@ const AudienceDashboard = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-8">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Browse Events</CardTitle>
@@ -390,22 +390,6 @@ const AudienceDashboard = () => {
               <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => handleTabChange('artists')}>
                   View Artists
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Events</CardTitle>
-                <CardDescription>Find upcoming shows</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">🎫</div>
-                <p className="text-sm text-muted-foreground">explore events now</p>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full" onClick={() => navigate('/events')}>
-                  Explore Now
                 </Button>
               </CardFooter>
             </Card>
