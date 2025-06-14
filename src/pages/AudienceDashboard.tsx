@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -402,6 +403,7 @@ const AudienceDashboard = () => {
                   {scheduledEvents.map(event => {
                     const bookedCount = bookedTickets[event.id] || 0;
                     const availableTickets = event.venue.capacity - bookedCount;
+                    const isSoldOut = availableTickets <= 0;
                     
                     return (
                       <Card key={event.id} className="hover:shadow-lg transition-shadow">
@@ -431,19 +433,25 @@ const AudienceDashboard = () => {
                           )}
                         </CardContent>
                         <CardFooter>
-                          <BookTicketDialog
-                            event={{
-                              id: event.id,
-                              name: event.name,
-                              price: event.price,
-                              venue: {
-                                name: event.venue.name,
-                                capacity: event.venue.capacity
-                              }
-                            }}
-                            availableTickets={availableTickets}
-                            onBookingSuccess={handleBookingSuccess}
-                          />
+                          {isSoldOut ? (
+                            <Button disabled className="w-full" variant="outline">
+                              Sold Out
+                            </Button>
+                          ) : (
+                            <BookTicketDialog
+                              event={{
+                                id: event.id,
+                                name: event.name,
+                                price: event.price,
+                                venue: {
+                                  name: event.venue.name,
+                                  capacity: event.venue.capacity
+                                }
+                              }}
+                              availableTickets={availableTickets}
+                              onBookingSuccess={handleBookingSuccess}
+                            />
+                          )}
                         </CardFooter>
                       </Card>
                     );
