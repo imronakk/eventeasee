@@ -13,7 +13,7 @@ interface EventDetailData {
   name: string;
   description: string;
   event_date: string;
-  duration: string;
+  duration: unknown; // Change from string to unknown to match database type
   status: string;
   venue: {
     id: string;
@@ -76,6 +76,18 @@ const EventDetail = () => {
 
     fetchEventDetail();
   }, [id]);
+
+  // Helper function to format duration
+  const formatDuration = (duration: unknown): string => {
+    if (!duration) return 'N/A';
+    
+    // Convert PostgreSQL interval to string
+    if (typeof duration === 'object' && duration !== null) {
+      return String(duration);
+    }
+    
+    return String(duration);
+  };
 
   if (loading) {
     return (
@@ -151,7 +163,7 @@ const EventDetail = () => {
                   <Clock className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="font-medium">Duration</p>
-                    <p className="text-gray-600">{event.duration}</p>
+                    <p className="text-gray-600">{formatDuration(event.duration)}</p>
                   </div>
                 </div>
 
