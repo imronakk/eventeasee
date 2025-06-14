@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +29,7 @@ interface ScheduledEvent {
   description: string | null;
   event_date: string;
   price: number;
+  ticket_sold: number;
   venue: {
     name: string;
     capacity: number;
@@ -54,7 +54,6 @@ const AudienceDashboard = () => {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [loadingScheduledEvents, setLoadingScheduledEvents] = useState(false);
-  const [bookedTickets, setBookedTickets] = useState<Record<string, number>>({});
 
   const handleUpdatePreferences = () => {
     toast({
@@ -174,6 +173,7 @@ const AudienceDashboard = () => {
             description,
             event_date,
             price,
+            ticket_sold,
             venue:venues!events_venue_id_fkey (
               name,
               capacity
@@ -191,7 +191,6 @@ const AudienceDashboard = () => {
         if (error) throw error;
 
         setScheduledEvents(data || []);
-        await fetchBookedTicketsCount(data || []);
       } catch (error: any) {
         toast({
           variant: "destructive",
@@ -203,38 +202,13 @@ const AudienceDashboard = () => {
       }
     };
 
-    const fetchBookedTicketsCount = async (events: ScheduledEvent[]) => {
-      try {
-        const eventIds = events.map(event => event.id);
-        
-        if (eventIds.length === 0) return;
-
-        const { data, error } = await supabase
-          .from('bookings')
-          .select('ticket_id, quantity')
-          .in('ticket_id', eventIds)
-          .eq('status', 'confirmed');
-
-        if (error) throw error;
-
-        const ticketCounts: Record<string, number> = {};
-        data?.forEach((booking: any) => {
-          ticketCounts[booking.ticket_id] = (ticketCounts[booking.ticket_id] || 0) + booking.quantity;
-        });
-
-        setBookedTickets(ticketCounts);
-      } catch (error) {
-        console.error('Error fetching booked tickets count:', error);
-      }
-    };
-
     if (activeTab === 'events') {
       fetchScheduledEvents();
     }
   }, [activeTab, toast]);
 
   const handleBookingSuccess = () => {
-    // Refresh the scheduled events to update available tickets
+    // Refresh the scheduled events to update ticket counts
     if (activeTab === 'events') {
       const fetchScheduledEvents = async () => {
         const { data, error } = await supabase
@@ -245,6 +219,7 @@ const AudienceDashboard = () => {
             description,
             event_date,
             price,
+            ticket_sold,
             venue:venues!events_venue_id_fkey (
               name,
               capacity
@@ -261,20 +236,6 @@ const AudienceDashboard = () => {
 
         if (!error && data) {
           setScheduledEvents(data);
-          
-          // Update booked tickets count
-          const eventIds = data.map(event => event.id);
-          const { data: bookingsData } = await supabase
-            .from('bookings')
-            .select('ticket_id, quantity')
-            .in('ticket_id', eventIds)
-            .eq('status', 'confirmed');
-
-          const ticketCounts: Record<string, number> = {};
-          bookingsData?.forEach((booking: any) => {
-            ticketCounts[booking.ticket_id] = (ticketCounts[booking.ticket_id] || 0) + booking.quantity;
-          });
-          setBookedTickets(ticketCounts);
         }
       };
       fetchScheduledEvents();
@@ -364,7 +325,6 @@ const AudienceDashboard = () => {
             </Card>
           </div>
 
-          {/* Quick access to recent events */}
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -401,8 +361,7 @@ const AudienceDashboard = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {scheduledEvents.map(event => {
-                    const bookedCount = bookedTickets[event.id] || 0;
-                    const availableTickets = event.venue.capacity - bookedCount;
+                    const availableTickets = event.venue.capacity - event.ticket_sold;
                     const isSoldOut = availableTickets <= 0;
                     
                     return (

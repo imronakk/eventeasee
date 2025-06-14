@@ -106,6 +106,7 @@ export type Database = {
           name: string
           price: number | null
           status: string | null
+          ticket_sold: number
           updated_at: string | null
           venue_id: string
         }
@@ -119,6 +120,7 @@ export type Database = {
           name: string
           price?: number | null
           status?: string | null
+          ticket_sold?: number
           updated_at?: string | null
           venue_id: string
         }
@@ -132,6 +134,7 @@ export type Database = {
           name?: string
           price?: number | null
           status?: string | null
+          ticket_sold?: number
           updated_at?: string | null
           venue_id?: string
         }
