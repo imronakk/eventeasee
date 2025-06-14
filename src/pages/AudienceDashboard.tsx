@@ -165,6 +165,7 @@ const AudienceDashboard = () => {
     const fetchScheduledEvents = async () => {
       setLoadingScheduledEvents(true);
       try {
+        console.log('Fetching scheduled events with ticket_sold...');
         const { data, error } = await supabase
           .from('events')
           .select(`
@@ -190,8 +191,10 @@ const AudienceDashboard = () => {
 
         if (error) throw error;
 
+        console.log('Scheduled events data:', data);
         setScheduledEvents(data || []);
       } catch (error: any) {
+        console.error('Error fetching scheduled events:', error);
         toast({
           variant: "destructive",
           title: "Error fetching scheduled events",
@@ -363,6 +366,13 @@ const AudienceDashboard = () => {
                   {scheduledEvents.map(event => {
                     const availableTickets = event.venue.capacity - event.ticket_sold;
                     const isSoldOut = availableTickets <= 0;
+                    
+                    console.log(`Event ${event.name}:`, {
+                      capacity: event.venue.capacity,
+                      ticketSold: event.ticket_sold,
+                      availableTickets,
+                      isSoldOut
+                    });
                     
                     return (
                       <Card key={event.id} className="hover:shadow-lg transition-shadow">
