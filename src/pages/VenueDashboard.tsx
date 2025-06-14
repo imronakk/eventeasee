@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,6 +210,16 @@ const VenueDashboard = () => {
     } finally {
       setArtistsLoading(false);
     }
+  };
+
+  // Check if an event already exists between the artist and any of the venue owner's venues
+  const hasExistingEvent = (artistId: string) => {
+    if (!venues.length || !events.length) return false;
+    
+    return events.some(event => 
+      event.artist_id === artistId && 
+      venues.some(venue => venue.id === event.venue_id)
+    );
   };
 
   const openRequestDialog = (artist: any) => {
@@ -632,46 +641,56 @@ const VenueDashboard = () => {
                 <div className="text-center text-gray-600 py-8">No artists found.</div>
               ) : (
                 <div className="space-y-4">
-                  {artists.map((artist) => (
-                    <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          {artist.userAvatar ? (
-                            <img
-                              src={artist.userAvatar}
-                              alt={artist.userName}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
-                              {artist.userName.charAt(0)}
+                  {artists.map((artist) => {
+                    const existingEvent = hasExistingEvent(artist.id);
+                    
+                    return (
+                      <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            {artist.userAvatar ? (
+                              <img
+                                src={artist.userAvatar}
+                                alt={artist.userName}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
+                                {artist.userName.charAt(0)}
+                              </div>
+                            )}
+                            <h3 className="font-medium">{artist.userName}</h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
+                            {artist.description || 'No description available.'}
+                          </p>
+                          {artist.genres && artist.genres.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {artist.genres.map((genre: string) => (
+                                <span
+                                  key={genre}
+                                  className="text-xs font-medium bg-primary/20 text-primary rounded-full px-2 py-1"
+                                >
+                                  {genre}
+                                </span>
+                              ))}
                             </div>
                           )}
-                          <h3 className="font-medium">{artist.userName}</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
-                          {artist.description || 'No description available.'}
-                        </p>
-                        {artist.genres && artist.genres.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {artist.genres.map((genre: string) => (
-                              <span
-                                key={genre}
-                                className="text-xs font-medium bg-primary/20 text-primary rounded-full px-2 py-1"
-                              >
-                                {genre}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div className="mt-4 md:mt-0">
+                          {existingEvent ? (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Event Already Created
+                            </Badge>
+                          ) : (
+                            <Button variant="default" size="sm" onClick={() => openRequestDialog(artist)}>
+                              Request Performance
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="mt-4 md:mt-0">
-                        <Button variant="default" size="sm" onClick={() => openRequestDialog(artist)}>
-                          Request Performance
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
