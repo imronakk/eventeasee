@@ -5,9 +5,19 @@ import { Event } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { BookTicketDialog } from '@/components/BookTicketDialog';
+
+interface EventWithTickets extends Event {
+  tickets?: {
+    id: string;
+    price: number;
+    quantity_remaining: number;
+    ticket_type: string;
+  }[];
+}
 
 const Events = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithTickets[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -24,7 +34,13 @@ const Events = () => {
           description,
           event_date,
           duration,
-          status
+          status,
+          tickets (
+            id,
+            price,
+            quantity_remaining,
+            ticket_type
+          )
         `)
         .eq('status', 'scheduled')
         .order('event_date', { ascending: true });
@@ -34,7 +50,7 @@ const Events = () => {
         setEvents([]);
       } else if (data) {
         // Map the database fields to our Event type
-        const formattedEvents: Event[] = data.map((event: any) => ({
+        const formattedEvents: EventWithTickets[] = data.map((event: any) => ({
           id: event.id,
           venueId: event.venue_id,
           artistIds: event.artist_id ? [event.artist_id] : [],
@@ -43,11 +59,12 @@ const Events = () => {
           date: new Date(event.event_date),
           startTime: '00:00', // Default since we don't have separate start_time
           endTime: '23:59', // Default since we don't have separate end_time
-          ticketPrice: 0, // Default since not in events table
-          ticketsAvailable: 0, // Default since not in events table
+          ticketPrice: event.tickets?.[0]?.price || 0,
+          ticketsAvailable: event.tickets?.[0]?.quantity_remaining || 0,
           ticketsSold: 0, // Default since not in events table
           image: undefined,
           status: event.status || 'draft',
+          tickets: event.tickets || []
         }));
         setEvents(formattedEvents);
       }
@@ -81,12 +98,37 @@ const Events = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">Status: {event.status}</p>
 
-                <div className="mt-4">
+                {event.tickets && event.tickets.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium">
+                      Price: ${event.tickets[0].price}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Available: {event.tickets[0].quantity_remaining} tickets
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-4 flex gap-2 flex-wrap">
                   <Link to={`/events/${event.id}`}>
                     <Button variant="outline" size="sm">
                       View Details
                     </Button>
                   </Link>
+                  
+                  {event.tickets && event.tickets.length > 0 && event.tickets[0].quantity_remaining > 0 ? (
+                    <BookTicketDialog
+                      eventId={event.id}
+                      eventName={event.title}
+                      ticketId={event.tickets[0].id}
+                      ticketPrice={event.tickets[0].price}
+                      maxQuantity={event.tickets[0].quantity_remaining}
+                    />
+                  ) : (
+                    <Button size="sm" disabled>
+                      Sold Out
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
