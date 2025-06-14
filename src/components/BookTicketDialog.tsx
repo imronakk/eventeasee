@@ -82,8 +82,28 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
 
     setLoading(true);
     try {
+      console.log('Starting booking process...', {
+        event_id: event.id,
+        user_id: user.id,
+        quantity,
+        status: 'confirmed'
+      });
+
+      // Check current ticket_sold count before booking
+      const { data: eventBefore, error: eventBeforeError } = await supabase
+        .from('events')
+        .select('ticket_sold, name')
+        .eq('id', event.id)
+        .single();
+
+      if (eventBeforeError) {
+        console.error('Error fetching event before booking:', eventBeforeError);
+      } else {
+        console.log('Event before booking:', eventBefore);
+      }
+
       // Create booking record in ticket_info table
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from('ticket_info')
         .insert({
           event_id: event.id,
@@ -94,9 +114,32 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
           total_amount: totalPrice,
           payment_method: paymentMethod,
           status: 'confirmed'
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Booking insert error:', error);
+        throw error;
+      }
+
+      console.log('Booking inserted successfully:', insertedData);
+
+      // Wait a moment for the trigger to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check current ticket_sold count after booking
+      const { data: eventAfter, error: eventAfterError } = await supabase
+        .from('events')
+        .select('ticket_sold, name')
+        .eq('id', event.id)
+        .single();
+
+      if (eventAfterError) {
+        console.error('Error fetching event after booking:', eventAfterError);
+      } else {
+        console.log('Event after booking:', eventAfter);
+        console.log('Ticket sold count changed from', eventBefore?.ticket_sold, 'to', eventAfter?.ticket_sold);
+      }
 
       toast({
         title: "Booking confirmed!",
