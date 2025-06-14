@@ -438,6 +438,8 @@ const VenueDashboard = () => {
     try {
       const venueIds = venues.map(venue => venue.id);
       
+      console.log('Fetching booking info for venue IDs:', venueIds);
+      
       const { data, error } = await supabase
         .from('ticket_info')
         .select(`
@@ -449,29 +451,39 @@ const VenueDashboard = () => {
           payment_method,
           status,
           created_at,
-          event:events!ticket_info_event_id_fkey (
+          event:events (
             id,
             name,
             event_date,
             price,
             description,
-            venue:venues!events_venue_id_fkey (
+            venue:venues (
               name,
               capacity
             ),
-            artist:artists!events_artist_id_fkey (
-              profile:profiles!artists_id_fkey (
+            artist:artists (
+              profile:profiles (
                 full_name
               )
             )
           )
         `)
-        .in('event.venue_id', venueIds)
         .order('created_at', { ascending: false });
 
+      console.log('Raw ticket_info data:', data);
+      console.log('Query error:', error);
+
       if (error) throw error;
-      setBookingInfo(data || []);
+
+      // Filter the data to only include bookings for our venues
+      const filteredData = data?.filter(booking => 
+        booking.event && venueIds.includes(booking.event.venue_id)
+      ) || [];
+
+      console.log('Filtered booking data:', filteredData);
+      setBookingInfo(filteredData);
     } catch (error: any) {
+      console.error('Error fetching booking information:', error);
       toast({
         variant: "destructive",
         title: "Error fetching booking information",
