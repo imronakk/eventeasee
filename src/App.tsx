@@ -18,6 +18,7 @@ import VenueDashboard from "./pages/VenueDashboard";
 import AudienceDashboard from "./pages/AudienceDashboard";
 import Profile from "./pages/Profile";
 import Venues from "./pages/Venues";
+import VenueDetail from "./pages/VenueDetail";
 import Artist from "./pages/Artist";
 import Artists from "./pages/Artists";
 import Events from "./pages/Events";
@@ -111,7 +112,7 @@ const App = () => (
                 path="/venues/:id" 
                 element={
                   <MainLayout>
-                    <NotFound />
+                    <VenueDetail />
                   </MainLayout>
                 } 
               />
