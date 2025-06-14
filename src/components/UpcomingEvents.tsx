@@ -198,7 +198,7 @@ const UpcomingEvents = () => {
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-2" />
-                        <span>{event.duration}</span>
+                        <span>{event.duration || 'Duration TBA'}</span>
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-2" />

@@ -151,7 +151,7 @@ const FeaturedArtists = () => {
                       <Link to={`/artists/${artist.id}`}>
                         <Button 
                           variant="outline" 
-                          className="text-white border-white hover:bg-white hover:text-black"
+                          className="text-black bg-white border-white hover:bg-white/90 hover:text-black"
                         >
                           View Profile
                           <ExternalLink className="ml-2 h-4 w-4" />
