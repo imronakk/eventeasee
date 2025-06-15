@@ -477,11 +477,18 @@ const VenueDashboard = () => {
       if (error) throw error;
 
       // Filter the data to only include bookings for our venues
-      const filteredData = data?.filter(booking => 
-        booking.event && venueIds.includes(booking.event.venue_id)
-      ) || [];
+      const filteredData = data?.filter(booking => {
+        if (!booking.event || !booking.event.venue_id) {
+          console.log('Booking missing event or venue_id:', booking);
+          return false;
+        }
+        const isOurVenue = venueIds.includes(booking.event.venue_id);
+        console.log(`Booking ${booking.id}: venue_id=${booking.event.venue_id}, isOurVenue=${isOurVenue}`);
+        return isOurVenue;
+      }) || [];
 
       console.log('Filtered booking data:', filteredData);
+      console.log('Total bookings found:', filteredData.length);
       setBookingInfo(filteredData);
     } catch (error: any) {
       console.error('Error fetching booking information:', error);
