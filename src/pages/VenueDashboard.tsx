@@ -432,40 +432,64 @@ const VenueDashboard = () => {
   };
 
   const fetchBookingInfo = async () => {
-    if (!venues.length) return;
+    if (!user) {
+      console.log('No user found');
+      return;
+    }
     
     setBookingInfoLoading(true);
     try {
-      const venueIds = venues.map(venue => venue.id);
-      
       console.log('=== BOOKING INFO DEBUG ===');
-      console.log('Venue owner venues:', venues);
-      console.log('Venue IDs to filter by:', venueIds);
+      console.log('Current user ID:', user.id);
       
-      // First, let's check what events exist for our venues
-      const { data: eventsData, error: eventsError } = await supabase
+      // Step 1: Get venues owned by this user
+      const { data: userVenues, error: venuesError } = await supabase
+        .from('venues')
+        .select('id, name, owner_id')
+        .eq('owner_id', user.id);
+      
+      console.log('User venues query result:', userVenues);
+      console.log('User venues query error:', venuesError);
+      
+      if (venuesError) {
+        console.error('Error fetching user venues:', venuesError);
+        throw venuesError;
+      }
+      
+      if (!userVenues || userVenues.length === 0) {
+        console.log('No venues found for this user');
+        setBookingInfo([]);
+        return;
+      }
+      
+      const venueIds = userVenues.map(venue => venue.id);
+      console.log('Venue IDs owned by user:', venueIds);
+      
+      // Step 2: Get events at these venues
+      const { data: venueEvents, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, venue_id, artist_id')
+        .select('id, name, venue_id, artist_id, event_date')
         .in('venue_id', venueIds);
       
-      console.log('Events at our venues:', eventsData);
+      console.log('Events at user venues:', venueEvents);
+      console.log('Events query error:', eventsError);
       
       if (eventsError) {
         console.error('Error fetching events:', eventsError);
         throw eventsError;
       }
       
-      if (!eventsData || eventsData.length === 0) {
-        console.log('No events found for our venues');
+      if (!venueEvents || venueEvents.length === 0) {
+        console.log('No events found at user venues');
         setBookingInfo([]);
         return;
       }
       
-      const eventIds = eventsData.map(event => event.id);
-      console.log('Event IDs to get bookings for:', eventIds);
+      const eventIds = venueEvents.map(event => event.id);
+      console.log('Event IDs at user venues:', eventIds);
       
-      // Now fetch ticket_info for these specific events
-      const { data, error } = await supabase
+      // Step 3: Get ticket bookings for these events
+      const { data: ticketBookings, error: ticketError } = await supabase
         .from('ticket_info')
         .select(`
           id,
@@ -476,6 +500,7 @@ const VenueDashboard = () => {
           payment_method,
           status,
           created_at,
+          event_id,
           event:events (
             id,
             name,
@@ -497,16 +522,18 @@ const VenueDashboard = () => {
         .in('event_id', eventIds)
         .order('created_at', { ascending: false });
 
-      console.log('Ticket info query result:', data);
-      console.log('Ticket info query error:', error);
+      console.log('Ticket bookings query result:', ticketBookings);
+      console.log('Ticket bookings query error:', ticketError);
 
-      if (error) throw error;
+      if (ticketError) {
+        console.error('Error fetching ticket bookings:', ticketError);
+        throw ticketError;
+      }
 
-      // No need for client-side filtering since we already filtered by event_id
-      const bookingData = data || [];
-      
+      const bookingData = ticketBookings || [];
       console.log('Final booking data:', bookingData);
       console.log('Total bookings found:', bookingData.length);
+      
       setBookingInfo(bookingData);
     } catch (error: any) {
       console.error('Error fetching booking information:', error);
