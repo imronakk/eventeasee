@@ -438,8 +438,33 @@ const VenueDashboard = () => {
     try {
       const venueIds = venues.map(venue => venue.id);
       
-      console.log('Fetching booking info for venue IDs:', venueIds);
+      console.log('=== BOOKING INFO DEBUG ===');
+      console.log('Venue owner venues:', venues);
+      console.log('Venue IDs to filter by:', venueIds);
       
+      // First, let's check what events exist for our venues
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('id, name, venue_id, artist_id')
+        .in('venue_id', venueIds);
+      
+      console.log('Events at our venues:', eventsData);
+      
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        throw eventsError;
+      }
+      
+      if (!eventsData || eventsData.length === 0) {
+        console.log('No events found for our venues');
+        setBookingInfo([]);
+        return;
+      }
+      
+      const eventIds = eventsData.map(event => event.id);
+      console.log('Event IDs to get bookings for:', eventIds);
+      
+      // Now fetch ticket_info for these specific events
       const { data, error } = await supabase
         .from('ticket_info')
         .select(`
@@ -469,27 +494,20 @@ const VenueDashboard = () => {
             )
           )
         `)
+        .in('event_id', eventIds)
         .order('created_at', { ascending: false });
 
-      console.log('Raw ticket_info data:', data);
-      console.log('Query error:', error);
+      console.log('Ticket info query result:', data);
+      console.log('Ticket info query error:', error);
 
       if (error) throw error;
 
-      // Filter the data to only include bookings for our venues
-      const filteredData = data?.filter(booking => {
-        if (!booking.event || !booking.event.venue_id) {
-          console.log('Booking missing event or venue_id:', booking);
-          return false;
-        }
-        const isOurVenue = venueIds.includes(booking.event.venue_id);
-        console.log(`Booking ${booking.id}: venue_id=${booking.event.venue_id}, isOurVenue=${isOurVenue}`);
-        return isOurVenue;
-      }) || [];
-
-      console.log('Filtered booking data:', filteredData);
-      console.log('Total bookings found:', filteredData.length);
-      setBookingInfo(filteredData);
+      // No need for client-side filtering since we already filtered by event_id
+      const bookingData = data || [];
+      
+      console.log('Final booking data:', bookingData);
+      console.log('Total bookings found:', bookingData.length);
+      setBookingInfo(bookingData);
     } catch (error: any) {
       console.error('Error fetching booking information:', error);
       toast({
