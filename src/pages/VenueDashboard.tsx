@@ -457,6 +457,7 @@ const VenueDashboard = () => {
             event_date,
             price,
             description,
+            venue_id,
             venue:venues (
               name,
               capacity
