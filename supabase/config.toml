@@ -32,7 +32,7 @@ refresh_token_reuse_interval = 10
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
-enable_confirmations = false
+enable_confirmations = true
 
 [functions]
 [functions.send-approval-email]
