@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -83,6 +82,29 @@ const Auth = () => {
     try {
       console.log('Starting signup process for:', email, 'with role:', selectedRole);
       
+      // For venue owners, handle differently
+      if (selectedRole === 'venue_owner') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              user_type: selectedRole,
+              gstin: gstin,
+              pan: pan,
+            }
+          },
+        });
+
+        if (error) throw error;
+
+        setPendingVerification(true);
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // For artists and audience, create account and send OTP
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -90,10 +112,7 @@ const Auth = () => {
           data: {
             full_name: name,
             user_type: selectedRole,
-            gstin: selectedRole === 'venue_owner' ? gstin : null,
-            pan: selectedRole === 'venue_owner' ? pan : null,
-          },
-          emailRedirectTo: `${window.location.origin}/auth`
+          }
         },
       });
 
@@ -101,28 +120,27 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (selectedRole === 'venue_owner') {
-        setPendingVerification(true);
-        await supabase.auth.signOut();
-      } else {
-        // Check if user needs email confirmation
-        if (data.user && !data.session) {
-          console.log('User created but needs email confirmation');
-          setPendingEmail(email);
-          setShowOTPVerification(true);
-          toast({
-            title: 'Check your email',
-            description: 'We sent you a 6-digit verification code.',
-          });
-        } else if (data.session) {
-          console.log('User created and automatically signed in');
-          toast({
-            title: 'Account created successfully!',
-            description: 'Welcome to EventEase!',
-          });
-          redirectToDashboard(selectedRole);
+      // Sign out the user immediately and show OTP verification
+      await supabase.auth.signOut();
+      
+      // Send OTP for verification
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          shouldCreateUser: false
         }
-      }
+      });
+
+      if (otpError) throw otpError;
+
+      setPendingEmail(email);
+      setShowOTPVerification(true);
+      
+      toast({
+        title: 'Check your email',
+        description: 'We sent you a 6-digit verification code.',
+      });
+
     } catch (error: any) {
       console.error('Signup error:', error);
       toast({

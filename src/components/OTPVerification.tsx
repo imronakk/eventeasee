@@ -37,7 +37,7 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'signup'
+        type: 'email'
       });
 
       console.log('OTP verification response:', { data, error });
@@ -68,11 +68,10 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
     try {
       console.log('Resending OTP to:', email);
       
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
+      const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`
+          shouldCreateUser: false
         }
       });
 
