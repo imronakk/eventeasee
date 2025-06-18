@@ -32,11 +32,15 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
     setIsVerifying(true);
 
     try {
+      console.log('Verifying OTP for email:', email);
+      
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'email'
+        type: 'signup'
       });
+
+      console.log('OTP verification response:', { data, error });
 
       if (error) throw error;
 
@@ -47,6 +51,7 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
 
       onSuccess();
     } catch (error: any) {
+      console.error('OTP verification error:', error);
       toast({
         variant: 'destructive',
         title: 'Verification failed',
@@ -61,10 +66,17 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
     setIsResending(true);
 
     try {
+      console.log('Resending OTP to:', email);
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`
+        }
       });
+
+      console.log('Resend OTP response:', { error });
 
       if (error) throw error;
 
@@ -73,6 +85,7 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
         description: 'Please check your email for the new verification code.',
       });
     } catch (error: any) {
+      console.error('Resend OTP error:', error);
       toast({
         variant: 'destructive',
         title: 'Failed to resend code',

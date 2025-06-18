@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -80,6 +81,8 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      console.log('Starting signup process for:', email, 'with role:', selectedRole);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -90,8 +93,11 @@ const Auth = () => {
             gstin: selectedRole === 'venue_owner' ? gstin : null,
             pan: selectedRole === 'venue_owner' ? pan : null,
           },
+          emailRedirectTo: `${window.location.origin}/auth`
         },
       });
+
+      console.log('Signup response:', { data, error });
 
       if (error) throw error;
 
@@ -99,11 +105,26 @@ const Auth = () => {
         setPendingVerification(true);
         await supabase.auth.signOut();
       } else {
-        // For all users, show OTP verification
-        setPendingEmail(email);
-        setShowOTPVerification(true);
+        // Check if user needs email confirmation
+        if (data.user && !data.session) {
+          console.log('User created but needs email confirmation');
+          setPendingEmail(email);
+          setShowOTPVerification(true);
+          toast({
+            title: 'Check your email',
+            description: 'We sent you a 6-digit verification code.',
+          });
+        } else if (data.session) {
+          console.log('User created and automatically signed in');
+          toast({
+            title: 'Account created successfully!',
+            description: 'Welcome to EventEase!',
+          });
+          redirectToDashboard(selectedRole);
+        }
       }
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         variant: 'destructive',
         title: 'Error creating account',
@@ -169,8 +190,8 @@ const Auth = () => {
   const handleOTPVerificationSuccess = () => {
     setShowOTPVerification(false);
     toast({
-      title: 'Account created successfully!',
-      description: 'You can now sign in to your account.',
+      title: 'Email verified successfully!',
+      description: 'Your account has been activated. You can now sign in.',
     });
     // Reset form
     setEmail('');
