@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Mail, Lock, User, ArrowRight, FileText, Building, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import MainLayout from '@/layouts/MainLayout';
+import OTPVerification from '@/components/OTPVerification';
 import { UserRole } from '@/types';
 
 const Auth = () => {
@@ -29,6 +29,8 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>(roleFromUrl || 'audience');
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -95,22 +97,11 @@ const Auth = () => {
 
       if (selectedRole === 'venue_owner') {
         setPendingVerification(true);
-        // For venue owners, we'll sign them out since they need verification
         await supabase.auth.signOut();
       } else {
-        if (data.user) {
-          toast({
-            title: 'Account created successfully!',
-            description: 'You are now logged in.',
-          });
-
-          redirectToDashboard(selectedRole);
-        } else {
-          toast({
-            title: 'Account created!',
-            description: 'Please check your email to confirm your registration.',
-          });
-        }
+        // For all users, show OTP verification
+        setPendingEmail(email);
+        setShowOTPVerification(true);
       }
     } catch (error: any) {
       toast({
@@ -160,8 +151,6 @@ const Auth = () => {
           }
         } catch (profileError: any) {
           console.error("Error checking verification status:", profileError);
-          // If we fail to get the profile status, we'll let them in rather than blocking
-          // This is a fail-open approach that can be changed based on security requirements
         }
       }
       
@@ -176,6 +165,41 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  const handleOTPVerificationSuccess = () => {
+    setShowOTPVerification(false);
+    toast({
+      title: 'Account created successfully!',
+      description: 'You can now sign in to your account.',
+    });
+    // Reset form
+    setEmail('');
+    setPassword('');
+    setName('');
+    setGstin('');
+    setPan('');
+    setPendingEmail('');
+    setSelectedRole('audience');
+  };
+
+  const handleBackToSignUp = () => {
+    setShowOTPVerification(false);
+    setPendingEmail('');
+  };
+
+  if (showOTPVerification) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen py-20 flex items-center justify-center">
+          <OTPVerification
+            email={pendingEmail}
+            onBack={handleBackToSignUp}
+            onSuccess={handleOTPVerificationSuccess}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   if (pendingVerification) {
     return (
