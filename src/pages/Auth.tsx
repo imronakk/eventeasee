@@ -104,32 +104,21 @@ const Auth = () => {
         return;
       }
 
-      // For artists and audience, create account and send OTP
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+      // For artists and audience, use OTP-only flow
+      console.log('Sending OTP directly for email:', email);
+      
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email,
         options: {
+          shouldCreateUser: true,
           data: {
             full_name: name,
             user_type: selectedRole,
           }
-        },
-      });
-
-      console.log('Signup response:', { data, error });
-
-      if (error) throw error;
-
-      // Sign out the user immediately and show OTP verification
-      await supabase.auth.signOut();
-      
-      // Send OTP for verification
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          shouldCreateUser: false
         }
       });
+
+      console.log('OTP send response:', { otpError });
 
       if (otpError) throw otpError;
 
