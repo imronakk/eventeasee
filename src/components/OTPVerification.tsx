@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { useToast } from '@/hooks/use-toast';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { UserRole } from '@/types';
 
 interface OTPVerificationProps {
   email: string;
@@ -15,9 +16,26 @@ interface OTPVerificationProps {
 
 const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  const redirectToDashboard = (role: UserRole) => {
+    switch (role) {
+      case 'artist':
+        navigate('/artist-dashboard');
+        break;
+      case 'venue_owner':
+        navigate('/venue-dashboard');
+        break;
+      case 'audience':
+        navigate('/audience-dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
@@ -44,12 +62,20 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
 
       if (error) throw error;
 
-      toast({
-        title: 'Email verified successfully!',
-        description: 'Your account has been activated.',
-      });
+      if (data.user) {
+        const userRole = data.user.user_metadata?.user_type as UserRole || 'audience';
+        
+        toast({
+          title: 'Welcome!',
+          description: 'Your email has been verified and you are now signed in.',
+        });
 
-      onSuccess();
+        // Redirect to appropriate dashboard
+        redirectToDashboard(userRole);
+      } else {
+        // Fallback - call onSuccess to show success message
+        onSuccess();
+      }
     } catch (error: any) {
       console.error('OTP verification error:', error);
       toast({
