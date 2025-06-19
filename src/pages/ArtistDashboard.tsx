@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import ChatInterface from '@/components/ChatInterface';
 import EventCard from '@/components/EventCard';
+import MainLayout from '@/layouts/MainLayout';
 
 const ArtistDashboard = () => {
   const { user } = useAuth();
@@ -241,288 +242,290 @@ const ArtistDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Artist Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.name}</p>
-        </div>
-        <Button onClick={handleCreateProfile} className="whitespace-nowrap">
-          Complete Artist Profile
-        </Button>
-      </div>
-
-      <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Events</span>
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
-            <MusicIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Requests</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings2Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Upcoming Events</CardTitle>
-                <CardDescription>You have {upcomingEvents.length} events scheduled</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{upcomingEvents.length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("events")}>
-                  View all events
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Pending Requests</CardTitle>
-                <CardDescription>You have {pendingRequests.filter(r => r.status === 'pending').length} pending venue requests</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'pending').length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
-                  View all requests
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Accepted Requests</CardTitle>
-                <CardDescription>You have {pendingRequests.filter(r => r.status === 'accepted').length} accepted performance requests</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'accepted').length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
-                  View all requests
-                </Button>
-              </CardFooter>
-            </Card>
+    <MainLayout>
+      <div className="container mx-auto py-10 px-4 max-w-7xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Artist Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {user?.name}</p>
           </div>
-        </TabsContent>
+          <Button onClick={handleCreateProfile} className="whitespace-nowrap">
+            Complete Artist Profile
+          </Button>
+        </div>
 
-        <TabsContent value="events" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Events</CardTitle>
-              <CardDescription>Events you're scheduled to perform at</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {events.length > 0 ? (
-                <div className="grid gap-4">
-                  {events.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No events scheduled yet</p>
-                  <Button className="mt-4" onClick={() => navigate('/venues')}>
-                    Find Venues
+        <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-4 md:w-[600px] mb-8">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <MusicIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Requests</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings2Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>You have {upcomingEvents.length} events scheduled</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{upcomingEvents.length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => setActiveTab("events")}>
+                    View all events
                   </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="requests" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Requests</CardTitle>
-              <CardDescription>Requests you've sent to venues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-pulse flex space-x-2">
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                  </div>
-                </div>
-              ) : pendingRequests.length > 0 ? (
-                <div className="space-y-4">
-                  {pendingRequests.map((request) => {
-                    const statusLower = request.status.toLowerCase();
-                    return (
-                      <div key={request.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{request.venueName}</h3>
-                            <Badge 
-                              variant={getStatusBadgeVariant(request.status)}
-                              className="capitalize"
-                            >
-                              {statusLower}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            Proposed date: {format(new Date(request.date), 'PPP')}
-                          </p>
-                        </div>
-                        <div className="flex gap-2 mt-2 md:mt-0">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleViewRequest(request)}
-                          >
-                            View Details
-                          </Button>
-                          
-                          {statusLower === 'accepted' && (
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={() => handleOpenChat(request)}
-                            >
-                              <MessageSquare className="h-4 w-4 mr-1" /> Chat with Venue
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No pending requests</p>
-                  <Button className="mt-4" onClick={() => navigate('/venues')}>
-                    Find Venues
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Pending Requests</CardTitle>
+                  <CardDescription>You have {pendingRequests.filter(r => r.status === 'pending').length} pending venue requests</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'pending').length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
+                    View all requests
                   </Button>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/venues')}>
-                Find Venues to Request
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-              <CardDescription>Manage your artist profile and account settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
-                  Edit Profile
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
-                  Notification Settings
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
-                  Performance Preferences
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <AlertDialog open={requestDetailsOpen} onOpenChange={setRequestDetailsOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Performance Request Details</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedRequest && (
-                <div className="space-y-4 py-2">
-                  <div>
-                    <h4 className="font-medium">Venue</h4>
-                    <p>{selectedRequest.venueName}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Status</h4>
-                    <Badge variant={getStatusBadgeVariant(selectedRequest.status)} className="capitalize mt-1">
-                      {selectedRequest.status.toLowerCase()}
-                    </Badge>
-                    {selectedRequest.status.toLowerCase() === 'accepted' && (
-                      <p className="mt-2 text-sm text-green-600">
-                        Congratulations! Your request has been accepted. You can now chat with the venue owner to discuss details.
-                      </p>
-                    )}
-                    {selectedRequest.status.toLowerCase() === 'rejected' && (
-                      <p className="mt-2 text-sm text-red-600">
-                        Your request has been declined by the venue.
-                      </p>
-                    )}
-                    {selectedRequest.status.toLowerCase() === 'pending' && (
-                      <p className="mt-2 text-sm text-yellow-600">
-                        Your request is still pending a response from the venue.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Proposed Date</h4>
-                    <p>{selectedRequest && format(new Date(selectedRequest.date), 'PPP')}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Your Message</h4>
-                    <p className="text-sm text-muted-foreground">{selectedRequest.message || "No message provided"}</p>
-                  </div>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-            {selectedRequest && selectedRequest.status.toLowerCase() === 'accepted' && (
-              <Button onClick={() => {
-                setChatDialogOpen(true);
-                setRequestDetailsOpen(false);
-              }}>
-                <MessageSquare className="h-4 w-4 mr-2" /> Chat with Venue
-              </Button>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
-        <AlertDialogContent className="sm:max-w-[600px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Chat with {selectedRequest?.venueOwnerName}
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          {selectedRequest && (
-            <div className="h-[500px]">
-              <ChatInterface 
-                requestId={selectedRequest.id}
-                otherUserId={selectedRequest.venueOwnerId}
-                otherUserName={selectedRequest.venueOwnerName}
-                otherUserAvatar={selectedRequest.venueOwnerAvatar}
-              />
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Accepted Requests</CardTitle>
+                  <CardDescription>You have {pendingRequests.filter(r => r.status === 'accepted').length} accepted performance requests</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{pendingRequests.filter(r => r.status === 'accepted').length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => setActiveTab("requests")}>
+                    View all requests
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+          </TabsContent>
+
+          <TabsContent value="events" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Events</CardTitle>
+                <CardDescription>Events you're scheduled to perform at</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {events.length > 0 ? (
+                  <div className="grid gap-4">
+                    {events.map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No events scheduled yet</p>
+                    <Button className="mt-4" onClick={() => navigate('/venues')}>
+                      Find Venues
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Requests</CardTitle>
+                <CardDescription>Requests you've sent to venues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-pulse flex space-x-2">
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                    </div>
+                  </div>
+                ) : pendingRequests.length > 0 ? (
+                  <div className="space-y-4">
+                    {pendingRequests.map((request) => {
+                      const statusLower = request.status.toLowerCase();
+                      return (
+                        <div key={request.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{request.venueName}</h3>
+                              <Badge 
+                                variant={getStatusBadgeVariant(request.status)}
+                                className="capitalize"
+                              >
+                                {statusLower}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Proposed date: {format(new Date(request.date), 'PPP')}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 mt-2 md:mt-0">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleViewRequest(request)}
+                            >
+                              View Details
+                            </Button>
+                            
+                            {statusLower === 'accepted' && (
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                onClick={() => handleOpenChat(request)}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-1" /> Chat with Venue
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No pending requests</p>
+                    <Button className="mt-4" onClick={() => navigate('/venues')}>
+                      Find Venues
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={() => navigate('/venues')}>
+                  Find Venues to Request
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>Manage your artist profile and account settings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                    Edit Profile
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
+                    Notification Settings
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
+                    Performance Preferences
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <AlertDialog open={requestDetailsOpen} onOpenChange={setRequestDetailsOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Performance Request Details</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedRequest && (
+                  <div className="space-y-4 py-2">
+                    <div>
+                      <h4 className="font-medium">Venue</h4>
+                      <p>{selectedRequest.venueName}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Status</h4>
+                      <Badge variant={getStatusBadgeVariant(selectedRequest.status)} className="capitalize mt-1">
+                        {selectedRequest.status.toLowerCase()}
+                      </Badge>
+                      {selectedRequest.status.toLowerCase() === 'accepted' && (
+                        <p className="mt-2 text-sm text-green-600">
+                          Congratulations! Your request has been accepted. You can now chat with the venue owner to discuss details.
+                        </p>
+                      )}
+                      {selectedRequest.status.toLowerCase() === 'rejected' && (
+                        <p className="mt-2 text-sm text-red-600">
+                          Your request has been declined by the venue.
+                        </p>
+                      )}
+                      {selectedRequest.status.toLowerCase() === 'pending' && (
+                        <p className="mt-2 text-sm text-yellow-600">
+                          Your request is still pending a response from the venue.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Proposed Date</h4>
+                      <p>{selectedRequest && format(new Date(selectedRequest.date), 'PPP')}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Your Message</h4>
+                      <p className="text-sm text-muted-foreground">{selectedRequest.message || "No message provided"}</p>
+                    </div>
+                  </div>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+              {selectedRequest && selectedRequest.status.toLowerCase() === 'accepted' && (
+                <Button onClick={() => {
+                  setChatDialogOpen(true);
+                  setRequestDetailsOpen(false);
+                }}>
+                  <MessageSquare className="h-4 w-4 mr-2" /> Chat with Venue
+                </Button>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+          <AlertDialogContent className="sm:max-w-[600px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Chat with {selectedRequest?.venueOwnerName}
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            {selectedRequest && (
+              <div className="h-[500px]">
+                <ChatInterface 
+                  requestId={selectedRequest.id}
+                  otherUserId={selectedRequest.venueOwnerId}
+                  otherUserName={selectedRequest.venueOwnerName}
+                  otherUserAvatar={selectedRequest.venueOwnerAvatar}
+                />
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </MainLayout>
   );
 };
 
