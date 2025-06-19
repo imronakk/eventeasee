@@ -1,170 +1,69 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
-import { AuthProvider } from "@/hooks/useAuth";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import MainLayout from "@/layouts/MainLayout";
-
-// Import pages
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ArtistDashboard from "./pages/ArtistDashboard";
 import VenueDashboard from "./pages/VenueDashboard";
 import AudienceDashboard from "./pages/AudienceDashboard";
-import Profile from "./pages/Profile";
 import Venues from "./pages/Venues";
-import VenueDetail from "./pages/VenueDetail";
-import Artist from "./pages/Artist";
-import Artists from "./pages/Artists";
 import Events from "./pages/Events";
-import EventDetail from "./pages/EventDetail";
+import CreateEvent from "./pages/CreateEvent";
+import VenueProfile from "./pages/VenueProfile";
+import EventDetails from "./pages/EventDetails";
+import ArtistProfile from "./pages/ArtistProfile";
+import EditArtistProfile from "./pages/EditArtistProfile";
+import EditVenueProfile from "./pages/EditVenueProfile";
+import Requests from "./pages/Requests";
+import VenueRequests from "./pages/VenueRequests";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
+import About from "./pages/About";
+import { AuthProvider } from "./hooks/useAuth";
 
-// Create a client
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={
-            <div className="h-screen w-full flex items-center justify-center">
-              <div className="animate-pulse flex space-x-2">
-                <div className="w-3 h-3 bg-primary rounded-full"></div>
-                <div className="w-3 h-3 bg-primary rounded-full"></div>
-                <div className="w-3 h-3 bg-primary rounded-full"></div>
-              </div>
-            </div>
-          }>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              
-              {/* Auth Routes */}
               <Route path="/auth" element={<Auth />} />
-
-              {/* Dashboard Routes wrapped with MainLayout */}
-              <Route 
-                path="/artist-dashboard" 
-                element={
-                  <MainLayout>
-                    <ProtectedRoute allowedRoles={['artist']}>
-                      <ArtistDashboard />
-                    </ProtectedRoute>
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/venue-dashboard" 
-                element={
-                  <MainLayout>
-                    <ProtectedRoute allowedRoles={['venue_owner']}>
-                      <VenueDashboard />
-                    </ProtectedRoute>
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/audience-dashboard" 
-                element={
-                  <MainLayout>
-                    <ProtectedRoute allowedRoles={['audience']}>
-                      <AudienceDashboard />
-                    </ProtectedRoute>
-                  </MainLayout>
-                } 
-              />
-              
-              {/* Artist Routes wrapped with MainLayout */}
-              <Route 
-                path="/artists" 
-                element={
-                  <MainLayout>
-                    <Artists />
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/artists/:id" 
-                element={
-                  <MainLayout>
-                    <Artist />
-                  </MainLayout>
-                } 
-              />
-              
-              {/* Venue Routes wrapped with MainLayout */}
-              <Route 
-                path="/venues" 
-                element={
-                  <MainLayout>
-                    <Venues />
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/venues/:id" 
-                element={
-                  <MainLayout>
-                    <VenueDetail />
-                  </MainLayout>
-                } 
-              />
-              
-              {/* Event Routes wrapped with MainLayout */}
-              <Route 
-                path="/events" 
-                element={
-                  <MainLayout>
-                    <Events />
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/events/:id" 
-                element={
-                  <MainLayout>
-                    <EventDetail />
-                  </MainLayout>
-                } 
-              />
-              <Route 
-                path="/events/:id/book" 
-                element={
-                  <MainLayout>
-                    <ProtectedRoute>
-                      <NotFound />
-                    </ProtectedRoute>
-                  </MainLayout>
-                } 
-              />
-              
-              {/* User Profile wrapped with MainLayout */}
-              <Route 
-                path="/profile" 
-                element={
-                  <MainLayout>
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  </MainLayout>
-                } 
-              />
-              
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/artist-dashboard" element={<ArtistDashboard />} />
+              <Route path="/venue-dashboard" element={<VenueDashboard />} />
+              <Route path="/audience-dashboard" element={<AudienceDashboard />} />
+              <Route path="/venues" element={<Venues />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:eventId" element={<EventDetails />} />
+              <Route path="/create-event" element={<CreateEvent />} />
+              <Route path="/venues/:venueId" element={<VenueProfile />} />
+              <Route path="/artist/:artistId" element={<ArtistProfile />} />
+              <Route path="/artist/edit/:artistId" element={<EditArtistProfile />} />
+              <Route path="/venue/edit/:venueId" element={<EditVenueProfile />} />
+              <Route path="/requests" element={<Requests />} />
+              <Route path="/venue-requests" element={<VenueRequests />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/about" element={<About />} />
             </Routes>
-          </Suspense>
-        </BrowserRouter>
+          </BrowserRouter>
+        </TooltipProvider>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+}
 
 export default App;
