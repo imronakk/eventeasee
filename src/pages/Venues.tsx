@@ -1,9 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { MapPin, Users, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import VenueRequestButton from '@/components/VenueRequestButton';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -120,14 +121,22 @@ const Venues = () => {
                     </div>
                   )}
 
-                  {user && user.role === 'artist' && (
-                    <VenueRequestButton
-                      venueId={venue.id}
-                      venueName={venue.name}
-                      hasAlreadyRequested={hasAlreadyRequested}
-                      onRequestSent={handleRequestSent}
-                    />
-                  )}
+                  <div className="flex flex-col gap-2">
+                    <Link to={`/venues/${venue.id}`} className="w-full">
+                      <Button variant="outline" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+
+                    {user && user.role === 'artist' && (
+                      <VenueRequestButton
+                        venueId={venue.id}
+                        venueName={venue.name}
+                        hasAlreadyRequested={hasAlreadyRequested}
+                        onRequestSent={handleRequestSent}
+                      />
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
