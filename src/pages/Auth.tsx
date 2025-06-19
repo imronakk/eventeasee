@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -144,15 +145,66 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing credentials',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      console.log('Attempting sign in for:', email);
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
+      // Attempt sign in
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: email.trim(),
+        password: password,
       });
 
-      if (error) throw error;
+      console.log('Sign in response:', { data, error });
+
+      if (error) {
+        // Handle specific error cases
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            variant: 'destructive',
+            title: 'Email not confirmed',
+            description: 'Please check your email and confirm your account before signing in.',
+          });
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid credentials',
+            description: 'Please check your email and password and try again.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Login failed',
+            description: error.message || 'Please check your credentials and try again.',
+          });
+        }
+        return;
+      }
+
+      if (!data.user) {
+        toast({
+          variant: 'destructive',
+          title: 'Login failed',
+          description: 'No user data received. Please try again.',
+        });
+        return;
+      }
+
+      console.log('User logged in successfully:', data.user.id);
 
       const userRole = data.user?.user_metadata?.user_type as UserRole;
       
@@ -164,7 +216,9 @@ const Auth = () => {
             .eq('id', data.user.id)
             .maybeSingle();
             
-          if (profileError) throw profileError;
+          if (profileError) {
+            console.error("Error checking verification status:", profileError);
+          }
           
           if (profileData?.verification_status === 'pending') {
             toast({
@@ -182,12 +236,18 @@ const Auth = () => {
         }
       }
       
-      redirectToDashboard(userRole);
+      toast({
+        title: 'Welcome back!',
+        description: 'You have been signed in successfully.',
+      });
+      
+      redirectToDashboard(userRole || 'audience');
     } catch (error: any) {
+      console.error('Unexpected sign in error:', error);
       toast({
         variant: 'destructive',
         title: 'Login failed',
-        description: error.message || 'Please check your credentials and try again.',
+        description: 'An unexpected error occurred. Please try again.',
       });
     } finally {
       setIsLoading(false);
