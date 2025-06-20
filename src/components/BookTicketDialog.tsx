@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Ticket } from 'lucide-react';
 
 interface BookTicketDialogProps {
   event: {
@@ -22,10 +21,11 @@ interface BookTicketDialogProps {
   };
   availableTickets: number;
   onBookingSuccess: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTicketDialogProps) => {
-  const [open, setOpen] = useState(false);
+const BookTicketDialog = ({ event, availableTickets, onBookingSuccess, open, onOpenChange }: BookTicketDialogProps) => {
   const [quantity, setQuantity] = useState(1);
   const [customerName, setCustomerName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
@@ -146,7 +146,7 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
         description: `Successfully booked ${quantity} ticket(s) for ${event.name}.`,
       });
 
-      setOpen(false);
+      onOpenChange(false);
       resetForm();
       onBookingSuccess();
     } catch (error: any) {
@@ -162,13 +162,7 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" disabled={availableTickets === 0}>
-          <Ticket className="h-4 w-4 mr-2" />
-          Book Tickets
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Book Tickets for {event.name}</DialogTitle>
@@ -246,7 +240,7 @@ const BookTicketDialog = ({ event, availableTickets, onBookingSuccess }: BookTic
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleBooking} disabled={loading || availableTickets === 0}>

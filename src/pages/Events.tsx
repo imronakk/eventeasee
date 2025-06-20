@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,17 @@ import { useAuth } from '@/hooks/useAuth';
 import BookTicketDialog from '@/components/BookTicketDialog';
 import MainLayout from '@/layouts/MainLayout';
 
-interface EventWithBookingInfo extends Event {
+interface EventWithBookingInfo {
+  id: string;
+  venue_id: string;
+  artist_id: string | null;
+  name: string;
+  description: string | null;
+  event_date: string;
+  duration: string;
+  status: string;
+  price: number;
+  ticket_sold: number;
   venue: {
     name: string;
     capacity: number;
@@ -20,8 +31,6 @@ interface EventWithBookingInfo extends Event {
       full_name: string;
     };
   } | null;
-  price: number;
-  ticket_sold: number;
 }
 
 const Events = () => {
@@ -65,27 +74,7 @@ const Events = () => {
         console.error('Error fetching events:', error);
         setEvents([]);
       } else if (data) {
-        // Map the database fields to our Event type with booking info
-        const formattedEvents: EventWithBookingInfo[] = data.map((event: any) => ({
-          id: event.id,
-          venueId: event.venue_id,
-          artistIds: event.artist_id ? [event.artist_id] : [],
-          title: event.name || 'Untitled Event',
-          description: event.description || '',
-          date: new Date(event.event_date),
-          startTime: '00:00',
-          endTime: '23:59',
-          ticketPrice: event.price || 0,
-          ticketsAvailable: 0,
-          ticketsSold: 0,
-          image: undefined,
-          status: event.status || 'draft',
-          venue: event.venue || { name: 'Unknown Venue', capacity: 0 },
-          artist: event.artist,
-          price: event.price || 0,
-          ticket_sold: event.ticket_sold || 0
-        }));
-        setEvents(formattedEvents);
+        setEvents(data as EventWithBookingInfo[]);
       }
       setLoading(false);
     };
@@ -123,26 +112,7 @@ const Events = () => {
         .order('event_date', { ascending: true });
 
       if (!error && data) {
-        const formattedEvents: EventWithBookingInfo[] = data.map((event: any) => ({
-          id: event.id,
-          venueId: event.venue_id,
-          artistIds: event.artist_id ? [event.artist_id] : [],
-          title: event.name || 'Untitled Event',
-          description: event.description || '',
-          date: new Date(event.event_date),
-          startTime: '00:00',
-          endTime: '23:59',
-          ticketPrice: event.price || 0,
-          ticketsAvailable: 0,
-          ticketsSold: 0,
-          image: undefined,
-          status: event.status || 'draft',
-          venue: event.venue || { name: 'Unknown Venue', capacity: 0 },
-          artist: event.artist,
-          price: event.price || 0,
-          ticket_sold: event.ticket_sold || 0
-        }));
-        setEvents(formattedEvents);
+        setEvents(data as EventWithBookingInfo[]);
       }
     };
     fetchEvents();
@@ -234,7 +204,14 @@ const Events = () => {
 
         {selectedEvent && (
           <BookTicketDialog
-            event={selectedEvent}
+            event={{
+              id: selectedEvent.id,
+              name: selectedEvent.name,
+              price: selectedEvent.price,
+              venue: selectedEvent.venue
+            }}
+            availableTickets={(selectedEvent.venue?.capacity || 0) - selectedEvent.ticket_sold}
+            onBookingSuccess={handleBookingSuccess}
             open={bookTicketOpen}
             onOpenChange={setBookTicketOpen}
           />
