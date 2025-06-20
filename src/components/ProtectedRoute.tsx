@@ -4,7 +4,6 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -14,7 +13,6 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
-  const { toast } = useToast();
   const [isCheckingVerification, setIsCheckingVerification] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
@@ -36,17 +34,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
         if (error) throw error;
 
         setVerificationStatus(profileData.verification_status);
-
-        // If verification is pending, sign out the user and show message
-        if (profileData.verification_status === 'pending') {
-          toast({
-            title: 'Account pending verification',
-            description: 'Your account is still pending approval. You will be notified via email once approved.',
-          });
-          
-          await supabase.auth.signOut();
-          return;
-        }
       } catch (error: any) {
         console.error('Error checking verification status:', error);
       } finally {
@@ -55,7 +42,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     };
 
     checkVenueOwnerVerification();
-  }, [user, toast]);
+  }, [user]);
 
   // Show loading indicator while checking auth state or verification
   if (isLoading || isCheckingVerification) {

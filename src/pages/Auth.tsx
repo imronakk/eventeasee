@@ -53,8 +53,8 @@ const Auth = () => {
               .single();
               
             if (profileData?.verification_status === 'pending') {
+              // Don't sign out here, just show the pending verification page
               setPendingVerification(true);
-              await supabase.auth.signOut();
               return;
             }
           }
@@ -188,7 +188,7 @@ const Auth = () => {
               description: 'Your account is still pending approval. You will be notified via email once approved.',
             });
             
-            await supabase.auth.signOut();
+            // Don't sign out, just show pending verification page
             setIsLoading(false);
             setPendingVerification(true);
             return;
@@ -243,6 +243,19 @@ const Auth = () => {
     setPendingVenueOwnerData(null);
   };
 
+  const handleBackFromPending = async () => {
+    // Sign out the venue owner when they click back
+    await supabase.auth.signOut();
+    setPendingVerification(false);
+    setEmail('');
+    setPassword('');
+    setName('');
+    setGstin('');
+    setPan('');
+    setSelectedRole('audience');
+    setPendingVenueOwnerData(null);
+  };
+
   if (showOTPVerification) {
     return (
       <MainLayout>
@@ -273,16 +286,7 @@ const Auth = () => {
               Your venue owner account is pending verification. Your details will be reviewed soon, and you will be contacted through your email.
             </p>
             <Button 
-              onClick={() => {
-                setPendingVerification(false);
-                setEmail('');
-                setPassword('');
-                setName('');
-                setGstin('');
-                setPan('');
-                setSelectedRole('audience');
-                setPendingVenueOwnerData(null);
-              }}
+              onClick={handleBackFromPending}
               className="w-full"
             >
               Back to Sign Up
