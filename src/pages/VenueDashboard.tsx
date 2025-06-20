@@ -15,6 +15,7 @@ import ChatInterface from '@/components/ChatInterface';
 import CreateEventDialog from '@/components/CreateEventDialog';
 import EventCard from '@/components/EventCard';
 import UpdateEventDialog from '@/components/UpdateEventDialog';
+import MainLayout from '@/layouts/MainLayout';
 
 interface BookingInfo {
   id: string;
@@ -554,553 +555,555 @@ const VenueDashboard = () => {
   }, [venues, activeTab]);
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Venue Dashboard</h1>
-          <p className="text-muted-foreground">Manage your venues and booking requests</p>
-        </div>
-        <Button onClick={() => navigate('/profile')} className="whitespace-nowrap">
-          Manage Venues
-        </Button>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-7 md:w-[900px] mb-8">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="venues" className="flex items-center gap-2">
-            <BuildingIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Venues</span>
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Requests</span>
-          </TabsTrigger>
-          <TabsTrigger value="artists" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Artists</span>
-          </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Events</span>
-          </TabsTrigger>
-          <TabsTrigger value="event-info" className="flex items-center gap-2">
-            <InfoIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Event Info</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings2Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Your Venues</CardTitle>
-                <CardDescription>You have {venues.length} venues registered</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{venues.length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
-                  Manage Venues
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Pending Requests</CardTitle>
-                <CardDescription>You have {venueRequests.filter(r => r.status === 'pending').length} pending requests</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'pending').length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
-                  View Requests
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Accepted Bookings</CardTitle>
-                <CardDescription>You have {venueRequests.filter(r => r.status === 'accepted').length} accepted bookings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'accepted').length}</div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
-                  View Bookings
-                </Button>
-              </CardFooter>
-            </Card>
+    <MainLayout>
+      <div className="container mx-auto py-10 px-4 max-w-7xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Venue Dashboard</h1>
+            <p className="text-muted-foreground">Manage your venues and booking requests</p>
           </div>
-        </TabsContent>
+          <Button onClick={() => navigate('/profile')} className="whitespace-nowrap">
+            Manage Venues
+          </Button>
+        </div>
 
-        <TabsContent value="venues" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Venues</CardTitle>
-              <CardDescription>Manage the venues you own</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {venues.length > 0 ? (
-                <div className="space-y-4">
-                  {venues.map((venue) => (
-                    <div key={venue.id} className="flex justify-between items-center p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{venue.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Capacity: {venue.capacity} | {venue.address}
-                        </p>
-                      </div>
-                      <Button variant="outline" onClick={() => navigate(`/venues/${venue.id}`)}>
-                        View Details
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">You haven't added any venues yet</p>
-                  <Button className="mt-4" onClick={() => navigate('/profile')}>
-                    Add a Venue
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="grid grid-cols-7 md:w-[900px] mb-8">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="venues" className="flex items-center gap-2">
+              <BuildingIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Venues</span>
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Requests</span>
+            </TabsTrigger>
+            <TabsTrigger value="artists" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Artists</span>
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="event-info" className="flex items-center gap-2">
+              <InfoIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Event Info</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings2Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Your Venues</CardTitle>
+                  <CardDescription>You have {venues.length} venues registered</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{venues.length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                    Manage Venues
                   </Button>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/profile')}>
-                Add New Venue
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Pending Requests</CardTitle>
+                  <CardDescription>You have {venueRequests.filter(r => r.status === 'pending').length} pending requests</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'pending').length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
+                    View Requests
+                  </Button>
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Accepted Bookings</CardTitle>
+                  <CardDescription>You have {venueRequests.filter(r => r.status === 'accepted').length} accepted bookings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{venueRequests.filter(r => r.status === 'accepted').length}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" onClick={() => handleTabChange('requests')}>
+                    View Bookings
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="requests" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Requests</CardTitle>
-              <CardDescription>Manage artist requests for your venues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-pulse flex space-x-2">
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                  </div>
-                </div>
-              ) : venueRequests.length > 0 ? (
-                <div className="space-y-4">
-                  {venueRequests.map((request) => {
-                    const status = request.status?.toLowerCase() || 'pending';
-                    const hasEvent = events.some(event => 
-                      event.artist_id === request.artist_id && 
-                      event.venue_id === request.venue_id
-                    );
-
-                    return (
-                      <div key={request.id} className="p-4 border rounded-lg">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{request.artists?.profile?.full_name || 'Unknown Artist'}</h3>
-                              <Badge 
-                                variant={status === 'accepted' ? 'default' : status === 'rejected' ? 'destructive' : 'outline'}
-                                className="capitalize"
-                              >
-                                {status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Venue: {request.venues?.name} | Date: {format(new Date(request.proposed_date), 'PPP')}
-                            </p>
-                          </div>
-                          
-                          <div className="flex gap-2 mt-2 md:mt-0">
-                            {status === 'pending' ? (
-                              <>
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
-                                  onClick={() => handleAction(request, 'accept')}
-                                  className="flex items-center gap-1"
-                                >
-                                  <CheckIcon className="h-4 w-4" /> Accept
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm" 
-                                  onClick={() => handleAction(request, 'decline')}
-                                  className="flex items-center gap-1"
-                                >
-                                  <XIcon className="h-4 w-4" /> Decline
-                                </Button>
-                              </>
-                            ) : status === 'accepted' ? (
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => handleCreateEvent(request)}
-                                  disabled={hasEvent}
-                                  className="flex items-center gap-1"
-                                >
-                                  {hasEvent ? 'Event Created' : 'Create Event'}
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleOpenChat(request)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <MessageSquare className="h-4 w-4" /> Chat with Artist
-                                </Button>
-                              </div>
-                            ) : (
-                              <Badge variant="outline">No actions available</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No performance requests yet</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="artists" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Artists</CardTitle>
-              <CardDescription>Browse artists and send performance requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {artistsLoading ? (
-                <div className="text-center text-gray-600 py-8">Loading artists...</div>
-              ) : artists.length === 0 ? (
-                <div className="text-center text-gray-600 py-8">No artists found.</div>
-              ) : (
-                <div className="space-y-4">
-                  {artists.map((artist) => {
-                    const existingEvent = hasExistingEvent(artist.id);
-                    
-                    return (
-                      <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
+          <TabsContent value="venues" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Venues</CardTitle>
+                <CardDescription>Manage the venues you own</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {venues.length > 0 ? (
+                  <div className="space-y-4">
+                    {venues.map((venue) => (
+                      <div key={venue.id} className="flex justify-between items-center p-4 border rounded-lg">
                         <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            {artist.userAvatar ? (
-                              <img
-                                src={artist.userAvatar}
-                                alt={artist.userName}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
-                                {artist.userName.charAt(0)}
-                              </div>
-                            )}
-                            <h3 className="font-medium">{artist.userName}</h3>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
-                            {artist.description || 'No description available.'}
+                          <h3 className="font-medium">{venue.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Capacity: {venue.capacity} | {venue.address}
                           </p>
-                          {artist.genres && artist.genres.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {artist.genres.map((genre: string) => (
-                                <span
-                                  key={genre}
-                                  className="text-xs font-medium bg-primary/20 text-primary rounded-full px-2 py-1"
-                                >
-                                  {genre}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                        <div className="mt-4 md:mt-0">
-                          {existingEvent ? (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Event Already Created
-                            </Badge>
-                          ) : (
-                            <Button variant="default" size="sm" onClick={() => openRequestDialog(artist)}>
-                              Request Performance
-                            </Button>
-                          )}
-                        </div>
+                        <Button variant="outline" onClick={() => navigate(`/venues/${venue.id}`)}>
+                          View Details
+                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">You haven't added any venues yet</p>
+                    <Button className="mt-4" onClick={() => navigate('/profile')}>
+                      Add a Venue
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={() => navigate('/profile')}>
+                  Add New Venue
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="events" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Events</CardTitle>
-              <CardDescription>Events scheduled at your venues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {events.length > 0 ? (
-                <div className="grid gap-4">
-                  {events.map((event) => (
-                    <div key={event.id} className="relative">
-                      <EventCard event={event} />
-                      <Button 
-                        className="absolute top-4 right-4" 
-                        variant="outline"
-                        onClick={() => handleUpdateEvent(event)}
-                      >
-                        Update Event
-                      </Button>
+          <TabsContent value="requests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Requests</CardTitle>
+                <CardDescription>Manage artist requests for your venues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-pulse flex space-x-2">
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No events scheduled yet</p>
-                  <Button className="mt-4" onClick={() => setActiveTab("requests")}>
-                    View Requests to Create Event
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </div>
+                ) : venueRequests.length > 0 ? (
+                  <div className="space-y-4">
+                    {venueRequests.map((request) => {
+                      const status = request.status?.toLowerCase() || 'pending';
+                      const hasEvent = events.some(event => 
+                        event.artist_id === request.artist_id && 
+                        event.venue_id === request.venue_id
+                      );
 
-        <TabsContent value="event-info" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Event Information & Bookings</CardTitle>
-              <CardDescription>Detailed information about all events and their bookings at your venues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {bookingInfoLoading ? (
-                <div className="text-center text-muted-foreground py-8">
-                  Loading booking information...
-                </div>
-              ) : bookingInfo.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <InfoIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No bookings found</p>
-                  <p className="text-sm">Bookings will appear here once tickets are sold for your events.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Event Details</TableHead>
-                        <TableHead>Artist</TableHead>
-                        <TableHead>Venue Info</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Tickets</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Booked On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bookingInfo.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell className="font-medium">
+                      return (
+                        <div key={request.id} className="p-4 border rounded-lg">
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                             <div>
-                              <p className="font-semibold">{booking.event.name}</p>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium">{request.artists?.profile?.full_name || 'Unknown Artist'}</h3>
+                                <Badge 
+                                  variant={status === 'accepted' ? 'default' : status === 'rejected' ? 'destructive' : 'outline'}
+                                  className="capitalize"
+                                >
+                                  {status}
+                                </Badge>
+                              </div>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(booking.event.event_date).toLocaleDateString()}
+                                Venue: {request.venues?.name} | Date: {format(new Date(request.proposed_date), 'PPP')}
                               </p>
-                              <p className="text-sm text-muted-foreground">
-                                ₹{booking.event.price} per ticket
-                              </p>
-                              {booking.event.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                  {booking.event.description}
-                                </p>
+                            </div>
+                            
+                            <div className="flex gap-2 mt-2 md:mt-0">
+                              {status === 'pending' ? (
+                                <>
+                                  <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => handleAction(request, 'accept')}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <CheckIcon className="h-4 w-4" /> Accept
+                                  </Button>
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    onClick={() => handleAction(request, 'decline')}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <XIcon className="h-4 w-4" /> Decline
+                                  </Button>
+                                </>
+                              ) : status === 'accepted' ? (
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    onClick={() => handleCreateEvent(request)}
+                                    disabled={hasEvent}
+                                    className="flex items-center gap-1"
+                                  >
+                                    {hasEvent ? 'Event Created' : 'Create Event'}
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleOpenChat(request)}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <MessageSquare className="h-4 w-4" /> Chat with Artist
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Badge variant="outline">No actions available</Badge>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {booking.event.artist?.profile?.full_name || 'Unknown Artist'}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{booking.event.venue?.name || 'Unknown Venue'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Capacity: {booking.event.venue?.capacity || 'Unknown'}
-                              </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No performance requests yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="artists" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Artists</CardTitle>
+                <CardDescription>Browse artists and send performance requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {artistsLoading ? (
+                  <div className="text-center text-gray-600 py-8">Loading artists...</div>
+                ) : artists.length === 0 ? (
+                  <div className="text-center text-gray-600 py-8">No artists found.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {artists.map((artist) => {
+                      const existingEvent = hasExistingEvent(artist.id);
+                      
+                      return (
+                        <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              {artist.userAvatar ? (
+                                <img
+                                  src={artist.userAvatar}
+                                  alt={artist.userName}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
+                                  {artist.userName.charAt(0)}
+                                </div>
+                              )}
+                              <h3 className="font-medium">{artist.userName}</h3>
                             </div>
-                          </TableCell>
-                          <TableCell>{booking.customer_name}</TableCell>
-                          <TableCell>{booking.contact_number}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {booking.quantity} tickets
-                            </Badge>
-                          </TableCell>
-                          <TableCell>₹{booking.total_amount}</TableCell>
-                          <TableCell className="capitalize">
-                            {booking.payment_method}
-                          </TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === 'confirmed' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {booking.status}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(booking.created_at).toLocaleDateString()}
-                          </TableCell>
+                            <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
+                              {artist.description || 'No description available.'}
+                            </p>
+                            {artist.genres && artist.genres.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {artist.genres.map((genre: string) => (
+                                  <span
+                                    key={genre}
+                                    className="text-xs font-medium bg-primary/20 text-primary rounded-full px-2 py-1"
+                                  >
+                                    {genre}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-4 md:mt-0">
+                            {existingEvent ? (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                Event Already Created
+                              </Badge>
+                            ) : (
+                              <Button variant="default" size="sm" onClick={() => openRequestDialog(artist)}>
+                                Request Performance
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="events" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Events</CardTitle>
+                <CardDescription>Events scheduled at your venues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {events.length > 0 ? (
+                  <div className="grid gap-4">
+                    {events.map((event) => (
+                      <div key={event.id} className="relative">
+                        <EventCard event={event} />
+                        <Button 
+                          className="absolute top-4 right-4" 
+                          variant="outline"
+                          onClick={() => handleUpdateEvent(event)}
+                        >
+                          Update Event
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No events scheduled yet</p>
+                    <Button className="mt-4" onClick={() => setActiveTab("requests")}>
+                      View Requests to Create Event
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="event-info" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Information & Bookings</CardTitle>
+                <CardDescription>Detailed information about all events and their bookings at your venues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {bookingInfoLoading ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    Loading booking information...
+                  </div>
+                ) : bookingInfo.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <InfoIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No bookings found</p>
+                    <p className="text-sm">Bookings will appear here once tickets are sold for your events.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Event Details</TableHead>
+                          <TableHead>Artist</TableHead>
+                          <TableHead>Venue Info</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Tickets</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Payment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Booked On</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {bookingInfo.map((booking) => (
+                          <TableRow key={booking.id}>
+                            <TableCell className="font-medium">
+                              <div>
+                                <p className="font-semibold">{booking.event.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(booking.event.event_date).toLocaleDateString()}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  ₹{booking.event.price} per ticket
+                                </p>
+                                {booking.event.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                    {booking.event.description}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {booking.event.artist?.profile?.full_name || 'Unknown Artist'}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{booking.event.venue?.name || 'Unknown Venue'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Capacity: {booking.event.venue?.capacity || 'Unknown'}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{booking.customer_name}</TableCell>
+                            <TableCell>{booking.contact_number}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {booking.quantity} tickets
+                              </Badge>
+                            </TableCell>
+                            <TableCell>₹{booking.total_amount}</TableCell>
+                            <TableCell className="capitalize">
+                              {booking.payment_method}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                booking.status === 'confirmed' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(booking.created_at).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>Manage your preferences and notification settings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                    Edit Profile
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
+                    Notification Settings
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
+                    Booking Preferences
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-              <CardDescription>Manage your preferences and notification settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
-                  Edit Profile
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
-                  Notification Settings
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast({ title: "Coming soon", description: "This feature is coming soon!" })}>
-                  Booking Preferences
-                </Button>
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {actionType === 'accept' ? 'Accept Request' : 'Decline Request'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {actionType === 'accept'
+                  ? `Are you sure you want to accept the performance request from ${selectedRequest?.artists?.profile?.full_name}?`
+                  : `Are you sure you want to decline the performance request from ${selectedRequest?.artists?.profile?.full_name}?`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmAction}
+                disabled={processing}
+                className={actionType === 'decline' ? 'bg-destructive hover:bg-destructive/90' : ''}
+              >
+                {processing ? 'Processing...' : actionType === 'accept' ? 'Accept' : 'Decline'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+          <AlertDialogContent className="sm:max-w-[600px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Chat with {selectedRequest?.artists?.profile?.full_name}
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            {selectedRequest && (
+              <div className="h-[500px]">
+                <ChatInterface 
+                  requestId={selectedRequest.id}
+                  otherUserId={selectedRequest.artist_id}
+                  otherUserName={selectedRequest.artists?.profile?.full_name}
+                  otherUserAvatar={selectedRequest.artists?.profile?.avatar_url}
+                />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {actionType === 'accept' ? 'Accept Request' : 'Decline Request'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {actionType === 'accept'
-                ? `Are you sure you want to accept the performance request from ${selectedRequest?.artists?.profile?.full_name}?`
-                : `Are you sure you want to decline the performance request from ${selectedRequest?.artists?.profile?.full_name}?`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmAction}
-              disabled={processing}
-              className={actionType === 'decline' ? 'bg-destructive hover:bg-destructive/90' : ''}
-            >
-              {processing ? 'Processing...' : actionType === 'accept' ? 'Accept' : 'Decline'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
-        <AlertDialogContent className="sm:max-w-[600px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Chat with {selectedRequest?.artists?.profile?.full_name}
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          {selectedRequest && (
-            <div className="h-[500px]">
-              <ChatInterface 
-                requestId={selectedRequest.id}
-                otherUserId={selectedRequest.artist_id}
-                otherUserName={selectedRequest.artists?.profile?.full_name}
-                otherUserAvatar={selectedRequest.artists?.profile?.avatar_url}
+        <AlertDialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+          <AlertDialogContent className="sm:max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Send Performance Request</AlertDialogTitle>
+              <AlertDialogDescription>
+                Send a performance request to {artistToRequest?.userName}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="px-6 py-2">
+              <label htmlFor="requestMessage" className="block font-medium mb-1">Message (optional)</label>
+              <textarea
+                id="requestMessage"
+                className="w-full border border-gray-300 rounded-md p-2 resize-none"
+                rows={4}
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+                placeholder="Enter your message or details about the request"
               />
             </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={submitPerformanceRequest} disabled={processing}>
+                {processing ? 'Sending...' : 'Send Request'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      <AlertDialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Send Performance Request</AlertDialogTitle>
-            <AlertDialogDescription>
-              Send a performance request to {artistToRequest?.userName}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="px-6 py-2">
-            <label htmlFor="requestMessage" className="block font-medium mb-1">Message (optional)</label>
-            <textarea
-              id="requestMessage"
-              className="w-full border border-gray-300 rounded-md p-2 resize-none"
-              rows={4}
-              value={requestMessage}
-              onChange={(e) => setRequestMessage(e.target.value)}
-              placeholder="Enter your message or details about the request"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={submitPerformanceRequest} disabled={processing}>
-              {processing ? 'Sending...' : 'Send Request'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {selectedArtist && venues.length > 0 && (
+          <CreateEventDialog
+            open={createEventDialogOpen}
+            onOpenChange={setCreateEventDialogOpen}
+            artist={selectedArtist}
+            venue={venues[0]}
+          />
+        )}
 
-      {selectedArtist && venues.length > 0 && (
-        <CreateEventDialog
-          open={createEventDialogOpen}
-          onOpenChange={setCreateEventDialogOpen}
-          artist={selectedArtist}
-          venue={venues[0]}
-        />
-      )}
-
-      {selectedEvent && (
-        <UpdateEventDialog
-          open={updateEventDialogOpen}
-          onOpenChange={setUpdateEventDialogOpen}
-          event={selectedEvent}
-          onUpdate={fetchEvents}
-        />
-      )}
-    </div>
+        {selectedEvent && (
+          <UpdateEventDialog
+            open={updateEventDialogOpen}
+            onOpenChange={setUpdateEventDialogOpen}
+            event={selectedEvent}
+            onUpdate={fetchEvents}
+          />
+        )}
+      </div>
+    </MainLayout>
   );
 };
 

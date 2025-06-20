@@ -16,6 +16,7 @@ import Events from "./pages/Events";
 import Artists from "./pages/Artists";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
+import VenueDetail from "./pages/VenueDetail";
 import { AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -37,8 +38,10 @@ function App() {
               <Route path="/venue-dashboard" element={<VenueDashboard />} />
               <Route path="/audience-dashboard" element={<AudienceDashboard />} />
               <Route path="/venues" element={<Venues />} />
+              <Route path="/venue/:id" element={<VenueDetail />} />
               <Route path="/events" element={<Events />} />
               <Route path="/artists" element={<Artists />} />
+              <Route path="/artists/:id" element={<Artists />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
