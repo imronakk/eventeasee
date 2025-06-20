@@ -42,7 +42,24 @@ const Auth = () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
-          redirectToDashboard(data.session.user.user_metadata.user_type as UserRole);
+          const userRole = data.session.user.user_metadata.user_type as UserRole;
+          
+          // Check verification status for venue owners
+          if (userRole === 'venue_owner') {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('verification_status')
+              .eq('id', data.session.user.id)
+              .single();
+              
+            if (profileData?.verification_status === 'pending') {
+              setPendingVerification(true);
+              await supabase.auth.signOut();
+              return;
+            }
+          }
+          
+          redirectToDashboard(userRole);
         }
       } catch (error) {
         console.error("Error checking session:", error);

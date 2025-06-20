@@ -65,12 +65,17 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
       // Get user role from the verified user data
       const userRole = data.user?.user_metadata?.user_type as UserRole;
       
-      // For venue owners, call onSuccess to show pending verification page
+      // For venue owners, sign them out immediately and show pending verification page
       if (userRole === 'venue_owner') {
         toast({
           title: 'Email verified successfully!',
           description: 'Your account details are now being reviewed.',
         });
+        
+        // Sign out the venue owner immediately
+        await supabase.auth.signOut();
+        console.log('Venue owner signed out after email verification');
+        
         onSuccess();
       } else {
         // For artists and audience, redirect to dashboard
