@@ -1,27 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Event } from '@/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, MapPin, Users, Clock, Star, Music } from 'lucide-react';
-import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import BookTicketDialog from '@/components/BookTicketDialog';
-import MainLayout from '@/layouts/MainLayout';
+import { useAuth } from '@/hooks/useAuth';
 
-interface EventWithBookingInfo {
-  id: string;
-  venue_id: string;
-  artist_id: string | null;
-  name: string;
-  description: string | null;
-  event_date: string;
-  duration: string;
-  status: string;
-  price: number;
-  ticket_sold: number;
+interface EventWithBookingInfo extends Event {
   venue: {
     name: string;
     capacity: number;
@@ -31,14 +18,14 @@ interface EventWithBookingInfo {
       full_name: string;
     };
   } | null;
+  price: number;
+  ticket_sold: number;
 }
 
 const Events = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<EventWithBookingInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedEvent, setSelectedEvent] = useState<EventWithBookingInfo | null>(null);
-  const [bookTicketOpen, setBookTicketOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -74,7 +61,27 @@ const Events = () => {
         console.error('Error fetching events:', error);
         setEvents([]);
       } else if (data) {
-        setEvents(data as EventWithBookingInfo[]);
+        // Map the database fields to our Event type with booking info
+        const formattedEvents: EventWithBookingInfo[] = data.map((event: any) => ({
+          id: event.id,
+          venueId: event.venue_id,
+          artistIds: event.artist_id ? [event.artist_id] : [],
+          title: event.name || 'Untitled Event',
+          description: event.description || '',
+          date: new Date(event.event_date),
+          startTime: '00:00',
+          endTime: '23:59',
+          ticketPrice: event.price || 0,
+          ticketsAvailable: 0,
+          ticketsSold: 0,
+          image: undefined,
+          status: event.status || 'draft',
+          venue: event.venue || { name: 'Unknown Venue', capacity: 0 },
+          artist: event.artist,
+          price: event.price || 0,
+          ticket_sold: event.ticket_sold || 0
+        }));
+        setEvents(formattedEvents);
       }
       setLoading(false);
     };
@@ -112,112 +119,109 @@ const Events = () => {
         .order('event_date', { ascending: true });
 
       if (!error && data) {
-        setEvents(data as EventWithBookingInfo[]);
+        const formattedEvents: EventWithBookingInfo[] = data.map((event: any) => ({
+          id: event.id,
+          venueId: event.venue_id,
+          artistIds: event.artist_id ? [event.artist_id] : [],
+          title: event.name || 'Untitled Event',
+          description: event.description || '',
+          date: new Date(event.event_date),
+          startTime: '00:00',
+          endTime: '23:59',
+          ticketPrice: event.price || 0,
+          ticketsAvailable: 0,
+          ticketsSold: 0,
+          image: undefined,
+          status: event.status || 'draft',
+          venue: event.venue || { name: 'Unknown Venue', capacity: 0 },
+          artist: event.artist,
+          price: event.price || 0,
+          ticket_sold: event.ticket_sold || 0
+        }));
+        setEvents(formattedEvents);
       }
     };
     fetchEvents();
   };
 
-  const handleBookTicket = (event: EventWithBookingInfo) => {
-    setSelectedEvent(event);
-    setBookTicketOpen(true);
-  };
-
   return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Upcoming Events</h1>
-          <p className="text-xl text-muted-foreground">Discover amazing live performances near you</p>
-        </div>
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-8 text-center">Scheduled Events</h1>
 
-        {loading ? (
-          <div className="text-center text-muted-foreground">Loading events...</div>
-        ) : events.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            <Music className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <p className="text-xl font-medium">No upcoming events found</p>
-            <p>Check back soon for new events!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
-              <Card key={event.id} className="hover:shadow-lg transition-shadow overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-xl font-bold line-clamp-2">
-                      {event.name}
-                    </CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                      ₹{event.price}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-sm">
-                    {event.description}
-                  </CardDescription>
+      {loading ? (
+        <div className="text-center text-gray-600">Loading events...</div>
+      ) : events.length === 0 ? (
+        <div className="text-center text-gray-600">No scheduled events found.</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {events.map((event) => {
+            const availableTickets = event.venue.capacity - event.ticket_sold;
+            const isSoldOut = availableTickets <= 0;
+
+            return (
+              <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle>{event.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {format(new Date(event.event_date), 'PPP')} at {format(new Date(event.event_date), 'p')}
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {event.venue?.name || 'Venue TBA'}
-                  </div>
-
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2" />
-                    {event.ticket_sold || 0} / {event.venue?.capacity || 'Unlimited'} tickets sold
-                  </div>
-
-                  {event.artist?.profile?.full_name && (
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Star className="h-4 w-4 mr-2" />
-                      <span>Artist: {event.artist.profile.full_name}</span>
-                    </div>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
+                    {event.description || 'No description available.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Date: {event.date.toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Status: {event.status}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Venue: {event.venue.name}
+                  </p>
+                  {event.artist?.profile && (
+                    <p className="text-xs text-muted-foreground">
+                      Artist: {event.artist.profile.full_name}
+                    </p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    🎫 {availableTickets} / {event.venue.capacity} tickets available
+                  </p>
+                  <p className="text-sm font-semibold text-primary mt-2">
+                    Price: ₹{event.ticketPrice}
+                  </p>
 
-                  <div className="flex gap-2 pt-2">
-                    <Link to={`/events/${event.id}`} className="flex-1">
-                      <Button variant="outline" className="w-full">
+                  <div className="mt-4 flex gap-2">
+                    <Link to={`/events/${event.id}`}>
+                      <Button variant="outline" size="sm">
                         View Details
                       </Button>
                     </Link>
                     
                     {user && user.role === 'audience' && (
-                      <Button 
-                        onClick={() => handleBookTicket(event)}
-                        className="flex-1"
-                        disabled={event.ticket_sold >= (event.venue?.capacity || 0)}
-                      >
-                        {event.ticket_sold >= (event.venue?.capacity || 0) ? 'Sold Out' : 'Book Ticket'}
-                      </Button>
+                      isSoldOut ? (
+                        <Button disabled size="sm" variant="outline">
+                          Sold Out
+                        </Button>
+                      ) : (
+                        <BookTicketDialog
+                          event={{
+                            id: event.id,
+                            name: event.title,
+                            price: event.price,
+                            venue: {
+                              name: event.venue.name,
+                              capacity: event.venue.capacity
+                            }
+                          }}
+                          availableTickets={availableTickets}
+                          onBookingSuccess={handleBookingSuccess}
+                        />
+                      )
                     )}
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-
-        {selectedEvent && (
-          <BookTicketDialog
-            event={{
-              id: selectedEvent.id,
-              name: selectedEvent.name,
-              price: selectedEvent.price,
-              venue: selectedEvent.venue
-            }}
-            availableTickets={(selectedEvent.venue?.capacity || 0) - selectedEvent.ticket_sold}
-            onBookingSuccess={handleBookingSuccess}
-            open={bookTicketOpen}
-            onOpenChange={setBookTicketOpen}
-          />
-        )}
-      </div>
-    </MainLayout>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
