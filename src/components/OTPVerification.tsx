@@ -62,18 +62,29 @@ const OTPVerification = ({ email, onBack, onSuccess }: OTPVerificationProps) => 
 
       if (error) throw error;
 
-      toast({
-        title: 'Email verified successfully!',
-        description: 'Redirecting to your dashboard...',
-      });
-
-      // Get user role and redirect to appropriate dashboard
+      // Get user role from the verified user data
       const userRole = data.user?.user_metadata?.user_type as UserRole;
-      if (userRole) {
-        redirectToDashboard(userRole);
-      } else {
-        // Fallback: call onSuccess if no role found
+      
+      // For venue owners, call onSuccess to show pending verification page
+      if (userRole === 'venue_owner') {
+        toast({
+          title: 'Email verified successfully!',
+          description: 'Your account details are now being reviewed.',
+        });
         onSuccess();
+      } else {
+        // For artists and audience, redirect to dashboard
+        toast({
+          title: 'Email verified successfully!',
+          description: 'Redirecting to your dashboard...',
+        });
+        
+        if (userRole) {
+          redirectToDashboard(userRole);
+        } else {
+          // Fallback: call onSuccess if no role found
+          onSuccess();
+        }
       }
     } catch (error: any) {
       console.error('OTP verification error:', error);

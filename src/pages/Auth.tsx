@@ -31,6 +31,11 @@ const Auth = () => {
   const [pendingVerification, setPendingVerification] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingVenueOwnerData, setPendingVenueOwnerData] = useState<{
+    name: string;
+    gstin: string;
+    pan: string;
+  } | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -82,39 +87,23 @@ const Auth = () => {
     try {
       console.log('Starting signup process for:', email, 'with role:', selectedRole);
       
-      // For venue owners, handle differently
-      if (selectedRole === 'venue_owner') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              user_type: selectedRole,
-              gstin: gstin,
-              pan: pan,
-            }
-          },
-        });
-
-        if (error) throw error;
-
-        setPendingVerification(true);
-        await supabase.auth.signOut();
-        return;
-      }
-
-      // For artists and audience, use OTP-only flow
+      // For all roles including venue owners, use OTP-only flow
       console.log('Sending OTP directly for email:', email);
       
+      const userData = {
+        full_name: name,
+        user_type: selectedRole,
+        ...(selectedRole === 'venue_owner' && {
+          gstin: gstin,
+          pan: pan,
+        })
+      };
+
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
           shouldCreateUser: true,
-          data: {
-            full_name: name,
-            user_type: selectedRole,
-          }
+          data: userData
         }
       });
 
@@ -123,6 +112,16 @@ const Auth = () => {
       if (otpError) throw otpError;
 
       setPendingEmail(email);
+      
+      // Store venue owner data for later use
+      if (selectedRole === 'venue_owner') {
+        setPendingVenueOwnerData({
+          name,
+          gstin,
+          pan
+        });
+      }
+      
       setShowOTPVerification(true);
       
       toast({
@@ -196,10 +195,21 @@ const Auth = () => {
 
   const handleOTPVerificationSuccess = () => {
     setShowOTPVerification(false);
-    toast({
-      title: 'Email verified successfully!',
-      description: 'Your account has been activated. You can now sign in.',
-    });
+    
+    // If it's a venue owner, show the pending verification page
+    if (selectedRole === 'venue_owner') {
+      setPendingVerification(true);
+      toast({
+        title: 'Email verified successfully!',
+        description: 'Your account is now pending verification. You will be notified via email once approved.',
+      });
+    } else {
+      toast({
+        title: 'Email verified successfully!',
+        description: 'Your account has been activated. You can now sign in.',
+      });
+    }
+    
     // Reset form
     setEmail('');
     setPassword('');
@@ -207,12 +217,13 @@ const Auth = () => {
     setGstin('');
     setPan('');
     setPendingEmail('');
-    setSelectedRole('audience');
+    setPendingVenueOwnerData(null);
   };
 
   const handleBackToSignUp = () => {
     setShowOTPVerification(false);
     setPendingEmail('');
+    setPendingVenueOwnerData(null);
   };
 
   if (showOTPVerification) {
@@ -253,6 +264,7 @@ const Auth = () => {
                 setGstin('');
                 setPan('');
                 setSelectedRole('audience');
+                setPendingVenueOwnerData(null);
               }}
               className="w-full"
             >
