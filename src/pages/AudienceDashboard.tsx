@@ -81,6 +81,8 @@ const AudienceDashboard = () => {
   const [loadingScheduledEvents, setLoadingScheduledEvents] = useState(false);
   const [bookedTickets, setBookedTickets] = useState<BookedTicket[]>([]);
   const [loadingBookedTickets, setLoadingBookedTickets] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduledEvent | null>(null);
+  const [bookTicketOpen, setBookTicketOpen] = useState(false);
 
   const handleUpdatePreferences = () => {
     toast({
@@ -325,6 +327,11 @@ const AudienceDashboard = () => {
     }
   };
 
+  const handleBookTicket = (event: ScheduledEvent) => {
+    setSelectedEvent(event);
+    setBookTicketOpen(true);
+  };
+
   return (
     <MainLayout>
       <div className="container mx-auto py-10 px-4 max-w-7xl">
@@ -476,19 +483,12 @@ const AudienceDashboard = () => {
                                 Sold Out
                               </Button>
                             ) : (
-                              <BookTicketDialog
-                                event={{
-                                  id: event.id,
-                                  name: event.name,
-                                  price: event.price,
-                                  venue: {
-                                    name: event.venue.name,
-                                    capacity: event.venue.capacity
-                                  }
-                                }}
-                                availableTickets={availableTickets}
-                                onBookingSuccess={handleBookingSuccess}
-                              />
+                              <Button 
+                                onClick={() => handleBookTicket(event)}
+                                className="w-full"
+                              >
+                                Book Ticket
+                              </Button>
                             )}
                           </CardFooter>
                         </Card>
@@ -635,6 +635,24 @@ const AudienceDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {selectedEvent && (
+          <BookTicketDialog
+            event={{
+              id: selectedEvent.id,
+              name: selectedEvent.name,
+              price: selectedEvent.price,
+              venue: {
+                name: selectedEvent.venue.name,
+                capacity: selectedEvent.venue.capacity
+              }
+            }}
+            availableTickets={(selectedEvent.venue?.capacity || 0) - selectedEvent.ticket_sold}
+            onBookingSuccess={handleBookingSuccess}
+            open={bookTicketOpen}
+            onOpenChange={setBookTicketOpen}
+          />
+        )}
       </div>
     </MainLayout>
   );
