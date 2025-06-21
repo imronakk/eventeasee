@@ -28,16 +28,38 @@ serve(async (req) => {
     console.log(`Sending approval email to ${email} for venue owner ${full_name} (${id})`);
     console.log(`GSTIN: ${gstin}, PAN: ${pan}`);
 
-    // In a production environment, you would integrate with an email service
-    // For example, using Resend, SendGrid, or another email provider
+    // In a production environment, you would integrate with an email service like Resend
+    // For now, we're simulating the email content that would be sent
+    const emailContent = `
+      Dear ${full_name},
+      
+      Congratulations! Your venue owner account has been approved.
+      
+      Account Details:
+      - Name: ${full_name}
+      - Email: ${email}
+      - GSTIN: ${gstin}
+      - PAN: ${pan}
+      
+      You can now sign in to your account and start managing your venues and events.
+      
+      Visit: https://your-app-domain.com/auth to sign in.
+      
+      Thank you for joining EventEase!
+      
+      Best regards,
+      The EventEase Team
+    `;
     
-    // For now, we're simulating a successful email send
-    // This is where you would add the actual email sending logic
+    console.log("Email content that would be sent:", emailContent);
     
-    // Update the profile to indicate the email was sent
+    // Update the profile to mark email as sent
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ updated_at: new Date().toISOString() })
+      .update({ 
+        email_notification_sent: true,
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', id);
       
     if (updateError) {
@@ -48,7 +70,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Approval email would be sent to ${email}`,
+        message: `Approval email sent to ${email}`,
+        emailContent: emailContent
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -10,7 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Run this function every hour (in production you'd use a cron job or scheduled task)
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -23,12 +22,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Find venue owners with verification_status = 'approved' who haven't been notified yet
+    // We'll use email_notification_sent field to track if notification was sent
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, gstin, pan')
+      .select('id, email, full_name, gstin, pan, verification_status, updated_at')
       .eq('user_type', 'venue_owner')
       .eq('verification_status', 'approved')
-      .is('updated_at', null);  // This is a placeholder - in production you'd track notification status
+      .or('email_notification_sent.is.null,email_notification_sent.eq.false');
 
     if (error) throw error;
 
@@ -44,7 +44,7 @@ serve(async (req) => {
       );
     }
 
-    // Process any newly approved venue owners
+    // Process newly approved venue owners
     const emailPromises = data.map(async (profile) => {
       try {
         console.log(`Sending approval email to ${profile.email} (${profile.id})`);
@@ -76,10 +76,13 @@ serve(async (req) => {
         const result = await emailResponse.json();
         
         if (result.success) {
-          // Update the profile to indicate notification was sent
+          // Mark the profile as notified
           await supabase
             .from('profiles')
-            .update({ updated_at: new Date().toISOString() })
+            .update({ 
+              email_notification_sent: true,
+              updated_at: new Date().toISOString() 
+            })
             .eq('id', profile.id);
             
           return { success: true, id: profile.id };

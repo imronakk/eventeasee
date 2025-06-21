@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -55,6 +56,12 @@ const Auth = () => {
             if (profileData?.verification_status === 'pending') {
               // Don't sign out here, just show the pending verification page
               setPendingVerification(true);
+              return;
+            }
+            
+            // If approved or any other status, proceed to dashboard
+            if (profileData?.verification_status === 'approved') {
+              redirectToDashboard(userRole);
               return;
             }
           }
@@ -172,6 +179,7 @@ const Auth = () => {
 
       const userRole = data.user?.user_metadata?.user_type as UserRole;
       
+      // For venue owners, check verification status
       if (userRole === 'venue_owner') {
         try {
           const { data: profileData, error: profileError } = await supabase
@@ -180,8 +188,12 @@ const Auth = () => {
             .eq('id', data.user.id)
             .maybeSingle();
             
-          if (profileError) throw profileError;
+          if (profileError) {
+            console.error("Error checking verification status:", profileError);
+            // If we can't check status, allow login but log error
+          }
           
+          // Handle different verification statuses
           if (profileData?.verification_status === 'pending') {
             toast({
               title: 'Account pending verification',
@@ -192,14 +204,31 @@ const Auth = () => {
             setIsLoading(false);
             setPendingVerification(true);
             return;
+          } else if (profileData?.verification_status === 'approved') {
+            // Venue owner is approved, proceed to dashboard
+            toast({
+              title: 'Welcome back!',
+              description: 'You have successfully signed in.',
+            });
+            redirectToDashboard(userRole);
+            return;
           }
+          // If verification_status is null or any other value, allow login
         } catch (profileError: any) {
           console.error("Error checking verification status:", profileError);
+          // If we can't check verification status, allow login
         }
       }
       
+      // For non-venue owners or if verification check fails, proceed normally
+      toast({
+        title: 'Welcome back!',
+        description: 'You have successfully signed in.',
+      });
       redirectToDashboard(userRole);
+      
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         variant: 'destructive',
         title: 'Login failed',
