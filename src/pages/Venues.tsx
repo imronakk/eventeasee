@@ -80,7 +80,7 @@ const Venues = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {venues.map((venue) => {
             const hasAlreadyRequested = existingRequests.includes(venue.id);
-            
+
             return (
               <Card key={venue.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -96,12 +96,12 @@ const Venues = () => {
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
                     {venue.description || 'No description available.'}
                   </p>
-                  
+
                   <div className="flex items-center text-xs text-muted-foreground mb-3">
                     <MapPin className="h-3 w-3 mr-1" />
                     {venue.address}
                   </div>
-                  
+
                   {venue.amenities && venue.amenities.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium mb-1">Amenities:</p>
@@ -128,6 +128,17 @@ const Venues = () => {
                       onRequestSent={handleRequestSent}
                     />
                   )}
+
+                  <div className="flex justify-between items-center mt-4">
+                    <a href={`/venues/${venue.id}`}>
+                      <button className="text-sm font-medium bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition">
+                        View Details
+                      </button>
+                    </a>
+
+                    
+                  </div>
+
                 </CardContent>
               </Card>
             );

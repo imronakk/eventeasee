@@ -70,7 +70,7 @@ const Hero = () => {
               </Button>
             </Link>
             <Link to="/auth?role=venue_owner&tab=signup">
-              <Button size="lg" variant="outline" className="rounded-full font-medium px-8 text-white border-white hover:bg-white hover:text-black">
+              <Button size="lg" variant="outline" className="rounded-full font-medium px-8 text-black border-white hover:bg-white hover:text-black">
                 List Your Venue
               </Button>
             </Link>
