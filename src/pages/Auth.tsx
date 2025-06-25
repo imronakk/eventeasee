@@ -93,77 +93,64 @@ const Auth = () => {
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (selectedRole === 'venue_owner') {
-      if (!gstin.trim() || !pan.trim()) {
-        toast({
-          variant: 'destructive',
-          title: 'Missing required fields',
-          description: 'Please provide both GSTIN and PAN for venue owner registration.',
-        });
-        return;
-      }
-    }
+  if (selectedRole === 'venue_owner' && (!gstin.trim() || !pan.trim())) {
+    toast({
+      variant: 'destructive',
+      title: 'Missing required fields',
+      description: 'Please provide both GSTIN and PAN for venue owner registration.',
+    });
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      console.log('Starting signup process for:', email, 'with role:', selectedRole);
-      
-      // For all roles including venue owners, use OTP-only flow
-      console.log('Sending OTP directly for email:', email);
-      
-      const userData = {
-        full_name: name,
-        user_type: selectedRole,
-        ...(selectedRole === 'venue_owner' && {
-          gstin: gstin,
-          pan: pan,
-        })
-      };
+  try {
+    const userData = {
+      full_name: name,
+      user_type: selectedRole,
+      ...(selectedRole === 'venue_owner' && {
+        gstin,
+        pan,
+      }),
+    };
 
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          shouldCreateUser: true,
-          data: userData
-        }
-      });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: userData,
+        emailRedirectTo: `${window.location.origin}/auth/callback`, // Optional
+      },
+    });
 
-      console.log('OTP send response:', { otpError });
+    if (error) throw error;
 
-      if (otpError) throw otpError;
+    toast({
+      title: 'Verify your email',
+      description: 'A confirmation link has been sent. Please verify your email before signing in.',
+    });
 
-      setPendingEmail(email);
-      
-      // Store venue owner data for later use
-      if (selectedRole === 'venue_owner') {
-        setPendingVenueOwnerData({
-          name,
-          gstin,
-          pan
-        });
-      }
-      
-      setShowOTPVerification(true);
-      
-      toast({
-        title: 'Check your email',
-        description: 'We sent you a 6-digit verification code.',
-      });
+    // Clear form
+    setEmail('');
+    setPassword('');
+    setName('');
+    setGstin('');
+    setPan('');
 
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error creating account',
-        description: error.message || 'Please try again later.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    toast({
+      variant: 'destructive',
+      title: 'Signup failed',
+      description: error.message || 'Something went wrong. Please try again.',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

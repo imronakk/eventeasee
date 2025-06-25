@@ -85,9 +85,9 @@ const VenueDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    
+
     console.log('Setting up real-time subscription for venue owner:', user.id);
-    
+
     const channel = supabase
       .channel('venue-owner-requests')
       .on(
@@ -101,8 +101,8 @@ const VenueDashboard = () => {
           console.log('Real-time update received:', payload);
           if (payload.eventType === 'UPDATE') {
             const updatedRequest = payload.new;
-            setVenueRequests(prevRequests => 
-              prevRequests.map(req => 
+            setVenueRequests(prevRequests =>
+              prevRequests.map(req =>
                 req.id === updatedRequest.id ? { ...req, status: updatedRequest.status } : req
               )
             );
@@ -146,7 +146,7 @@ const VenueDashboard = () => {
     try {
       setLoading(true);
       console.log('Fetching requests for venue owner:', user.id);
-      
+
       const { data: venuesList, error: venuesError } = await supabase
         .from('venues')
         .select('id')
@@ -245,9 +245,9 @@ const VenueDashboard = () => {
   // Check if an event already exists between the artist and any of the venue owner's venues
   const hasExistingEvent = (artistId: string) => {
     if (!venues.length || !events.length) return false;
-    
-    return events.some(event => 
-      event.artist_id === artistId && 
+
+    return events.some(event =>
+      event.artist_id === artistId &&
       venues.some(venue => venue.id === event.venue_id)
     );
   };
@@ -325,11 +325,11 @@ const VenueDashboard = () => {
     try {
       console.log(`Attempting to ${actionType} request with ID:`, selectedRequest.id);
       const newStatus = actionType === 'accept' ? 'accepted' : 'rejected';
-      
+
       // Update the request status in the database
       const { data, error } = await supabase
         .from('show_requests')
-        .update({ 
+        .update({
           status: newStatus,
           updated_at: new Date().toISOString()
         })
@@ -342,7 +342,7 @@ const VenueDashboard = () => {
       }
 
       console.log('Update successful, response data:', data);
-      
+
       // Update local state immediately to reflect the change
       setVenueRequests(prevRequests =>
         prevRequests.map(req =>
@@ -436,58 +436,56 @@ const VenueDashboard = () => {
       console.log('No user found');
       return;
     }
-    
+
     setBookingInfoLoading(true);
     try {
-      console.log('=== BOOKING INFO DEBUG ===');
-      console.log('Current user ID:', user.id);
-      
+
       // Step 1: Get venues owned by this user
       const { data: userVenues, error: venuesError } = await supabase
         .from('venues')
         .select('id, name, owner_id')
         .eq('owner_id', user.id);
-      
+
       console.log('User venues query result:', userVenues);
       console.log('User venues query error:', venuesError);
-      
+
       if (venuesError) {
         console.error('Error fetching user venues:', venuesError);
         throw venuesError;
       }
-      
+
       if (!userVenues || userVenues.length === 0) {
         console.log('No venues found for this user');
         setBookingInfo([]);
         return;
       }
-      
+
       const venueIds = userVenues.map(venue => venue.id);
       console.log('Venue IDs owned by user:', venueIds);
-      
+
       // Step 2: Get events at these venues
       const { data: venueEvents, error: eventsError } = await supabase
         .from('events')
         .select('id, name, venue_id, artist_id, event_date')
         .in('venue_id', venueIds);
-      
-      console.log('Events at user venues:', venueEvents);
-      console.log('Events query error:', eventsError);
-      
+
+      // console.log('Events at user venues:', venueEvents);
+      // console.log('Events query error:', eventsError);
+
       if (eventsError) {
         console.error('Error fetching events:', eventsError);
         throw eventsError;
       }
-      
+
       if (!venueEvents || venueEvents.length === 0) {
         console.log('No events found at user venues');
         setBookingInfo([]);
         return;
       }
-      
+
       const eventIds = venueEvents.map(event => event.id);
-      console.log('Event IDs at user venues:', eventIds);
-      
+      // console.log('Event IDs at user venues:', eventIds);
+
       // Step 3: Get ticket bookings for these events
       const { data: ticketBookings, error: ticketError } = await supabase
         .from('ticket_info')
@@ -513,6 +511,12 @@ const VenueDashboard = () => {
               capacity
             ),
             artist:artists (
+              id,
+              description,
+              genre,
+              experience,
+              introduction_video_url,
+              rating,
               profile:profiles (
                 full_name
               )
@@ -522,8 +526,9 @@ const VenueDashboard = () => {
         .in('event_id', eventIds)
         .order('created_at', { ascending: false });
 
-      console.log('Ticket bookings query result:', ticketBookings);
-      console.log('Ticket bookings query error:', ticketError);
+
+      // console.log('Ticket bookings query result:', ticketBookings);
+      // console.log('Ticket bookings query error:', ticketError);
 
       if (ticketError) {
         console.error('Error fetching ticket bookings:', ticketError);
@@ -531,9 +536,9 @@ const VenueDashboard = () => {
       }
 
       const bookingData = ticketBookings || [];
-      console.log('Final booking data:', bookingData);
-      console.log('Total bookings found:', bookingData.length);
-      
+      // console.log('Final booking data:', bookingData);
+      // console.log('Total bookings found:', bookingData.length);
+
       setBookingInfo(bookingData);
     } catch (error: any) {
       console.error('Error fetching booking information:', error);
@@ -703,8 +708,8 @@ const VenueDashboard = () => {
                 <div className="space-y-4">
                   {venueRequests.map((request) => {
                     const status = request.status?.toLowerCase() || 'pending';
-                    const hasEvent = events.some(event => 
-                      event.artist_id === request.artist_id && 
+                    const hasEvent = events.some(event =>
+                      event.artist_id === request.artist_id &&
                       event.venue_id === request.venue_id
                     );
 
@@ -714,7 +719,7 @@ const VenueDashboard = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-medium">{request.artists?.profile?.full_name || 'Unknown Artist'}</h3>
-                              <Badge 
+                              <Badge
                                 variant={status === 'accepted' ? 'default' : status === 'rejected' ? 'destructive' : 'outline'}
                                 className="capitalize"
                               >
@@ -725,21 +730,21 @@ const VenueDashboard = () => {
                               Venue: {request.venues?.name} | Date: {format(new Date(request.proposed_date), 'PPP')}
                             </p>
                           </div>
-                          
+
                           <div className="flex gap-2 mt-2 md:mt-0">
                             {status === 'pending' ? (
                               <>
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
+                                <Button
+                                  variant="default"
+                                  size="sm"
                                   onClick={() => handleAction(request, 'accept')}
                                   className="flex items-center gap-1"
                                 >
                                   <CheckIcon className="h-4 w-4" /> Accept
                                 </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm" 
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
                                   onClick={() => handleAction(request, 'decline')}
                                   className="flex items-center gap-1"
                                 >
@@ -748,8 +753,8 @@ const VenueDashboard = () => {
                               </>
                             ) : status === 'accepted' ? (
                               <div className="flex gap-2">
-                                <Button 
-                                  variant="default" 
+                                <Button
+                                  variant="default"
                                   size="sm"
                                   onClick={() => handleCreateEvent(request)}
                                   disabled={hasEvent}
@@ -757,8 +762,8 @@ const VenueDashboard = () => {
                                 >
                                   {hasEvent ? 'Event Created' : 'Create Event'}
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleOpenChat(request)}
                                   className="flex items-center gap-1"
@@ -799,7 +804,7 @@ const VenueDashboard = () => {
                 <div className="space-y-4">
                   {artists.map((artist) => {
                     const existingEvent = hasExistingEvent(artist.id);
-                    
+
                     return (
                       <div key={artist.id} className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center">
                         <div>
@@ -865,8 +870,8 @@ const VenueDashboard = () => {
                   {events.map((event) => (
                     <div key={event.id} className="relative">
                       <EventCard event={event} />
-                      <Button 
-                        className="absolute top-4 right-4" 
+                      <Button
+                        className="absolute top-4 right-4"
                         variant="outline"
                         onClick={() => handleUpdateEvent(event)}
                       >
@@ -963,11 +968,10 @@ const VenueDashboard = () => {
                             {booking.payment_method}
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              booking.status === 'confirmed' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                              }`}>
                               {booking.status}
                             </span>
                           </TableCell>
@@ -1021,7 +1025,7 @@ const VenueDashboard = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmAction}
               disabled={processing}
               className={actionType === 'decline' ? 'bg-destructive hover:bg-destructive/90' : ''}
@@ -1041,7 +1045,7 @@ const VenueDashboard = () => {
           </AlertDialogHeader>
           {selectedRequest && (
             <div className="h-[500px]">
-              <ChatInterface 
+              <ChatInterface
                 requestId={selectedRequest.id}
                 otherUserId={selectedRequest.artist_id}
                 otherUserName={selectedRequest.artists?.profile?.full_name}

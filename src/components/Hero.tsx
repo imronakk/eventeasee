@@ -78,7 +78,7 @@ const Hero = () => {
         </motion.div>
 
         {/* Feature cards */}
-        <motion.div
+        {/* <motion.div
           className="absolute bottom-8 left-0 right-0 grid grid-cols-1 md:grid-cols-3 gap-4 container mx-auto px-4"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,7 +113,7 @@ const Hero = () => {
               Discover and book tickets to amazing performances by talented artists at exceptional venues.
             </p>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );
