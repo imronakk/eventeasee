@@ -959,9 +959,9 @@ const VenueDashboard = () => {
                           <TableCell>{booking.customer_name}</TableCell>
                           <TableCell>{booking.contact_number}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">
+                            {/* <Badge variant="outline"> */}
                               {booking.quantity} tickets
-                            </Badge>
+                            {/* </Badge> */}
                           </TableCell>
                           <TableCell>₹{booking.total_amount}</TableCell>
                           <TableCell className="capitalize">
